@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeDEX</title>
+<style>
+:root {
+  --bg-0: #0A0A0A;
+  --bg-1: #111111;
+  --bg-2: #1A1A1A;
+  --bg-3: #222222;
+  --bg-4: #2A2A2A;
+  --border: #1E1E1E;
+  --border-subtle: #161616;
+  --t1: #F5F5F5;
+  --t2: #A0A0A0;
+  --t3: #6B6B6B;
+  --t4: #3D3D3D;
+  --accent: #10B981;
+  --accent-dim: rgba(16,185,129,0.12);
+  --accent-hover: #34D399;
+  --ok: #10B981;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --run: #6B7280;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --font: -apple-system, "Inter", "Noto Sans SC", "PingFang SC", sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "Menlo", monospace;
+  --panel-width: 520px;
+  --sidebar-width: 240px;
+}
+
+/* Light Theme */
+body.light {
+  --bg-0: #FFFFFF;
+  --bg-1: #F8F9FA;
+  --bg-2: #F1F3F5;
+  --bg-3: #E9ECEF;
+  --bg-4: #DEE2E6;
+  --border: #E0E0E0;
+  --border-subtle: #EAEAEA;
+  --t1: #111111;
+  --t2: #4B5563;
+  --t3: #6B7280;
+  --t4: #9CA3AF;
+  --accent: #10B981;
+  --accent-dim: rgba(16,185,129,0.08);
+  --accent-hover: #059669;
+  --ok: #10B981;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --run: #6B7280;
+}
+body.light ::-webkit-scrollbar-thumb { background: var(--t4); }
+body.light .msg.user-msg .msg-body { background: var(--accent-dim); border-color: rgba(16,185,129,0.12); }
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font); font-size: 15px; line-height: 1.7; color: var(--t1); background: var(--bg-0); -webkit-font-smoothing: antialiased; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--t4); border-radius: 2px; }
+::selection { background: rgba(16,185,129,0.2); }
+
+/* ===== Layout ===== */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.topbar {
+  height: 48px; flex-shrink: 0; display: flex; align-items: center;
+  padding: 0 20px; background: var(--bg-0); border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.topbar-brand { font-size: 14px; font-weight: 600; color: var(--t1); letter-spacing: -0.3px; }
+.topbar-sep { width: 1px; height: 16px; background: var(--border); }
+.topbar-info { font-size: 13px; color: var(--t3); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.topbar-btn {
+  width: 28px; height: 28px; border-radius: var(--r-sm); border: none;
+  background: none; color: var(--t3); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: all 100ms ease;
+}
+.topbar-btn:hover { background: var(--bg-2); color: var(--t2); }
+.topbar-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ===== Left Sidebar ===== */
+.sidebar {
+  width: var(--sidebar-width); flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--bg-0); border-right: 1px solid var(--border); overflow: hidden;
+  transition: width 200ms ease;
+}
+.sidebar-head { padding: 12px 16px; }
+.sidebar-new {
+  width: 100%; padding: 7px 12px; background: none; border: 1px solid var(--border);
+  border-radius: var(--r-md); color: var(--t2); font: 13px var(--font);
+  cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;
+  transition: all 150ms ease;
+}
+.sidebar-new:hover { border-color: var(--t3); color: var(--t1); background: var(--bg-1); }
+.sidebar-new svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+.sidebar-label { padding: 8px 16px 4px; font-size: 11px; color: var(--t4); letter-spacing: 0.3px; text-transform: uppercase; }
+.sidebar-item {
+  padding: 8px 16px; font-size: 13px; color: var(--t3); cursor: pointer;
+  transition: all 100ms ease; border-left: 2px solid transparent;
+}
+.sidebar-item:hover { color: var(--t2); background: var(--bg-1); }
+.sidebar-item.active { color: var(--t1); background: var(--bg-2); border-left-color: var(--accent); }
+
+/* ===== Center Chat ===== */
+.chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.messages { flex: 1; overflow-y: auto; padding: 32px 48px; scroll-behavior: smooth; }
+
+/* Messages */
+.msg { margin-bottom: 20px; }
+.msg-role { font-size: 12px; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.msg-role svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.msg.user-msg .msg-role { color: var(--t3); }
+.msg.user-msg .msg-body {
+  color: var(--t1); background: var(--accent-dim); border: 1px solid rgba(16,185,129,0.15); border-radius: var(--r-md);
+  padding: 10px 14px; display: inline-block; max-width: 85%;
+}
+.msg.user-msg { padding-left: 0; display: flex; flex-direction: column; align-items: flex-end; }
+.msg.ai-msg .msg-role { color: var(--accent); }
+.msg.ai-msg .msg-body { color: var(--t1); }
+.msg-body { font-size: 15px; line-height: 1.75; color: var(--t1); }
+.msg-body p { margin-bottom: 8px; }
+.msg-body p:last-child { margin-bottom: 0; }
+
+/* Inline Task Plan */
+.task-group {
+  background: none; border: none;
+  border-radius: 0; margin: 8px 0; overflow: hidden;
+}
+.task-group-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 0; cursor: pointer; user-select: none;
+}
+.task-group-title { font-size: 12px; color: var(--t3); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.task-group-title svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms ease; }
+.task-group.collapsed .task-group-title svg { transform: rotate(-90deg); }
+.task-group-count { font-size: 11px; color: var(--t4); font-family: var(--mono); }
+.task-group-body {
+  padding: 2px 0 6px;
+  max-height: 500px; overflow: hidden;
+  transition: max-height 250ms ease, padding 250ms ease, opacity 200ms ease;
+}
+.task-group.collapsed .task-group-body {
+  max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0;
+}
+.task-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 13px; }
+.task-indicator { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.task-indicator svg { width: 14px; height: 14px; }
+.task-indicator.done svg { stroke: var(--ok); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.task-indicator.running svg { animation: spin-smooth 1.2s linear infinite; }
+.task-indicator.running svg .ring { stroke: var(--t3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 28 12; }
+.task-indicator.pending svg { stroke: var(--t4); fill: none; stroke-width: 1.5; }
+.task-indicator.fail svg { stroke: var(--err); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes spin-smooth { to { transform: rotate(360deg); } }
+.task-idx { width: 16px; font-family: var(--mono); font-size: 12px; color: var(--t4); }
+.task-txt { color: var(--t3); transition: color 150ms ease; }
+.task-txt.done { color: var(--t1); }
+.task-txt.running { color: var(--t2); }
+.task-dur { font-family: var(--mono); font-size: 11px; color: var(--t4); margin-left: 4px; }
+
+/* Thinking */
+.thinking { margin: 6px 0; cursor: pointer; }
+.thinking-head {
+  font-size: 12px; color: var(--t3); font-family: var(--mono);
+  display: flex; align-items: center; gap: 6px; padding: 2px 0; user-select: none;
+}
+.thinking-head svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms ease; }
+.thinking.open .thinking-head svg { transform: rotate(90deg); }
+.thinking-body {
+  font-size: 13px; color: var(--t3); font-family: var(--mono); line-height: 1.55;
+  padding: 8px 0; max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height 250ms ease, opacity 200ms ease, padding 200ms ease;
+}
+.thinking.open .thinking-body { max-height: 300px; opacity: 1; padding: 8px 0; }
+
+/* Tool Call */
+.tool-card {
+  margin: 2px 0; border: none;
+  border-radius: 0;
+  overflow: hidden; background: none;
+}
+.tool-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 1px 0; cursor: pointer; font-size: 13px; user-select: none; color: var(--t3);
+}
+.tool-left { display: inline; color: var(--t3); }
+.tool-chevron { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms ease; color: var(--t4); flex-shrink: 0; vertical-align: middle; }
+.tool-card.open .tool-chevron { transform: rotate(90deg); }
+.tool-name { font-family: var(--mono); font-size: 12px; }
+.tool-cmd { font-family: var(--mono); font-size: 12px; color: var(--t4); }
+.tool-right { display: inline; }
+.tool-status { width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.tool-status svg { width: 12px; height: 12px; }
+.tool-status.ok svg { stroke: var(--ok); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tool-status.run svg { animation: spin-smooth 1.2s linear infinite; }
+.tool-status.run svg .ring { stroke: var(--t3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 28 12; }
+.tool-status.err svg { stroke: var(--err); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tool-dur { font-family: var(--mono); font-size: 11px; color: var(--t4); }
+.tool-body {
+  padding: 2px 0;
+  font-family: var(--mono); font-size: 13px; color: var(--t3); line-height: 1.5;
+  white-space: pre-wrap; max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height 250ms ease, opacity 200ms ease, padding 200ms ease;
+}
+.tool-card.open .tool-body { max-height: 600px; opacity: 1; padding: 2px 0; }
+
+/* Ask User */
+.ask-block {
+  margin: 16px 0; border: 1px solid var(--border); border-radius: var(--r-md);
+  background: none; padding: 16px;
+  transition: border-color 150ms ease;
+}
+.ask-block:hover { border-color: var(--bg-3); }
+.ask-title { font-size: 11px; color: var(--t3); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.ask-title svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ask-q { font-size: 14px; color: var(--t1); margin-bottom: 14px; line-height: 1.6; }
+.ask-opts { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.ask-opt {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--t2);
+  transition: all 150ms ease; border: 1px solid transparent;
+}
+.ask-opt:hover { background: var(--bg-3); color: var(--t1); }
+.ask-opt.sel { background: var(--accent-dim); border-color: rgba(16,185,129,0.25); color: var(--t1); }
+.ask-radio {
+  width: 14px; height: 14px; border: 1.5px solid var(--t4); border-radius: 50%;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  transition: all 150ms ease;
+}
+.ask-opt:hover .ask-radio { border-color: var(--t3); }
+.ask-opt.sel .ask-radio { border-color: var(--accent); }
+.ask-opt.sel .ask-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: radio-pop 200ms ease;
+}
+@keyframes radio-pop { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.ask-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ask-field-row { display: flex; align-items: center; gap: 10px; }
+.ask-field-label { font-size: 13px; color: var(--t2); min-width: 56px; }
+.ask-field-input {
+  flex: 1; padding: 6px 10px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t1); font: 14px var(--font); outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.ask-field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
+.ask-field-unit { font-size: 12px; color: var(--t4); font-family: var(--mono); }
+.ask-confirm {
+  padding: 7px 16px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t1); font: 13px var(--font); cursor: pointer;
+  transition: all 150ms ease;
+}
+.ask-confirm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Task Change Notice */
+.task-notice {
+  margin: 4px 0; border: none; border-radius: 0;
+  background: none; overflow: hidden;
+}
+.task-notice-head {
+  padding: 2px 0; font-size: 11px; color: var(--t3); font-weight: 600;
+  letter-spacing: 0.3px; text-transform: uppercase;
+}
+.task-notice-body { padding: 2px 0; font-size: 13px; color: var(--t3); line-height: 1.6; }
+.task-notice-body .add { color: var(--accent); }
+.task-notice-body .mod { color: var(--t2); }
+.task-notice-body .arr { color: var(--t4); margin: 0 4px; }
+
+/* File Links */
+.file-link {
+  font-family: var(--mono); font-size: 13px; color: var(--accent);
+  text-decoration: none; cursor: pointer; padding: 2px 0; display: inline-flex;
+  align-items: center; gap: 5px; border-bottom: 1px solid transparent; transition: all 150ms ease;
+}
+.file-link:hover { border-bottom-color: var(--accent); color: var(--accent-hover); }
+.file-link svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6; }
+
+/* Entity underline */
+.entity { border-bottom: 1px dotted var(--t4); cursor: default; transition: border-color 150ms ease; }
+.entity:hover { border-color: var(--t3); }
+
+/* Stream cursor */
+.stream-cursor::after { content: "▍"; color: var(--t3); animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Input */
+.input-area {
+  flex-shrink: 0; padding: 12px 48px 16px; background: var(--bg-0);
+}
+.input-toolbar { display: none; }
+
+/* Model Selector */
+.model-selector {
+  position: relative; display: inline-flex;
+}
+.model-btn {
+  display: flex; align-items: center; gap: 5px; padding: 2px 8px;
+  background: none; border: none; border-radius: var(--r-sm);
+  color: var(--t3); font: 11px var(--font); cursor: pointer;
+  transition: all 150ms ease;
+}
+.model-btn:hover { color: var(--t2); }
+.model-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.model-btn .model-name { font-weight: 600; color: var(--t2); }
+.model-dropdown {
+  position: fixed; min-width: 220px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 4px; opacity: 0; pointer-events: none; transform: translateY(4px);
+  transition: all 150ms ease; z-index: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.model-dropdown.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.model-option {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer;
+  transition: background 100ms ease; font-size: 13px; color: var(--t2);
+}
+.model-option:hover { background: var(--bg-3); color: var(--t1); }
+.model-option.selected { background: var(--accent-dim); color: var(--t1); }
+.model-option-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.model-option-name { font-weight: 600; color: var(--t1); }
+.model-option-desc { font-size: 11px; color: var(--t3); }
+.model-option-check { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+/* Skill Button */
+.skill-btn {
+  display: flex; align-items: center; gap: 4px; padding: 2px 8px;
+  background: none; border: none; border-radius: var(--r-sm);
+  color: var(--t3); font: 11px var(--font); cursor: pointer;
+  transition: all 150ms ease; position: relative;
+}
+.skill-btn:hover { color: var(--t2); }
+.skill-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.skill-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-left: 4px; }
+.skill-tag { padding: 1px 6px; background: var(--accent-dim); border-radius: var(--r-sm); font-size: 10px; color: var(--accent); white-space: nowrap; cursor: pointer; }
+.skill-tag:hover { text-decoration: line-through; }
+
+/* Skill Dropdown */
+.skill-dropdown {
+  position: fixed; min-width: 240px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 4px; opacity: 0; pointer-events: none; transform: translateY(4px);
+  transition: all 150ms ease; z-index: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.skill-dropdown.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.skill-dropdown-title { padding: 6px 10px 4px; font-size: 10px; color: var(--t4); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+.skill-option {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-radius: var(--r-sm); cursor: pointer; transition: background 100ms ease;
+}
+.skill-option:hover { background: var(--bg-3); }
+.skill-option.selected { background: var(--accent-dim); }
+.skill-option svg { width: 14px; height: 14px; stroke: var(--t3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.skill-option-info { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.skill-option-name { font-size: 13px; color: var(--t1); }
+.skill-option-desc { font-size: 11px; color: var(--t3); }
+
+.input-box {
+  display: flex; flex-direction: column;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r-md); transition: border-color 150ms ease, box-shadow 150ms ease;
+  overflow: hidden;
+}
+.input-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
+.input-row {
+  display: flex; align-items: flex-end; gap: 0; padding: 2px;
+}
+.input-attach {
+  width: 36px; height: 36px; border: none; background: none; color: var(--t4);
+  cursor: pointer; border-radius: var(--r-sm); display: flex;
+  align-items: center; justify-content: center; transition: all 150ms ease; flex-shrink: 0;
+}
+.input-attach:hover { color: var(--t2); background: var(--bg-3); }
+.input-attach svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.input-text {
+  flex: 1; padding: 12px 4px 12px 4px; background: none; border: none; outline: none;
+  color: var(--t1); font: 14px var(--font); line-height: 1.5; resize: none;
+  min-height: 48px; max-height: 200px;
+}
+.input-text::placeholder { color: var(--t4); }
+.input-send {
+  width: 36px; height: 36px; border: none; background: none; color: var(--t4);
+  cursor: pointer; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; transition: all 150ms ease; flex-shrink: 0;
+}
+.input-send:hover { color: var(--accent); background: var(--accent-dim); }
+.input-send svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.input-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 8px 6px; border-top: 1px solid var(--border);
+}
+.input-footer-left { display: flex; align-items: center; gap: 4px; }
+.input-footer-right { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--t4); }
+.input-hint { font-size: 11px; color: var(--t4); margin-top: 6px; display: flex; align-items: center; justify-content: space-between; }
+
+/* Attachments */
+.attachments { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.att {
+  display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  font-size: 12px; color: var(--t3); font-family: var(--mono);
+  transition: border-color 100ms ease;
+}
+.att:hover { border-color: var(--t3); }
+.att svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.5; }
+.att .x { cursor: pointer; color: var(--t4); transition: color 100ms ease; font-size: 14px; }
+.att .x:hover { color: var(--err); }
+
+/* ===== Resize Handle ===== */
+.resize-handle {
+  width: 4px; cursor: col-resize; background: transparent;
+  position: relative; flex-shrink: 0; z-index: 10;
+  transition: background 150ms ease;
+}
+.resize-handle::before {
+  content: ''; position: absolute; left: -3px; right: -3px; top: 0; bottom: 0;
+}
+.resize-handle:hover, .resize-handle.dragging { background: var(--accent); }
+.resize-handle:hover { opacity: 0.3; }
+.resize-handle.dragging { opacity: 0.6; }
+
+/* ===== Right File Panel ===== */
+.file-panel {
+  width: var(--panel-width); flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--bg-1); border-left: 1px solid var(--border); overflow: hidden;
+  transition: width 200ms ease, opacity 200ms ease;
+}
+.file-panel.collapsed {
+  width: 0; opacity: 0; border-left: none; overflow: hidden; pointer-events: none;
+}
+.file-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.file-panel-title { font-size: 12px; color: var(--t3); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.file-panel-title svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.file-panel-actions { display: flex; align-items: center; gap: 4px; }
+.file-panel-btn {
+  padding: 4px 8px; background: none; border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t3); font: 11px var(--font); cursor: pointer;
+  transition: all 150ms ease; display: flex; align-items: center; gap: 4px;
+}
+.file-panel-btn:hover { border-color: var(--t3); color: var(--t2); }
+.file-panel-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.panel-toggle {
+  width: 24px; height: 24px; background: none; border: none; color: var(--t3);
+  cursor: pointer; border-radius: var(--r-sm); display: flex;
+  align-items: center; justify-content: center; transition: all 150ms ease;
+}
+.panel-toggle:hover { background: var(--bg-3); color: var(--t2); }
+.panel-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.file-panel-body { flex: 1; display: flex; overflow: hidden; }
+
+/* File Tree */
+.file-tree {
+  width: 160px; flex-shrink: 0; border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 6px 0;
+}
+.tree-folder {
+  cursor: pointer; user-select: none;
+}
+.tree-folder-head {
+  display: flex; align-items: center; gap: 4px; padding: 4px 8px;
+  font-size: 12px; color: var(--t2); transition: all 100ms ease;
+  border-radius: 2px; margin: 0 4px;
+}
+.tree-folder-head:hover { background: var(--bg-2); color: var(--t1); }
+.tree-folder-head svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.tree-folder-head .chevron { width: 12px; height: 12px; transition: transform 150ms ease; }
+.tree-folder.open > .tree-folder-head .chevron { transform: rotate(90deg); }
+.tree-folder-children {
+  overflow: hidden; max-height: 0; transition: max-height 200ms ease;
+}
+.tree-folder.open > .tree-folder-children { max-height: 600px; }
+.tree-item {
+  padding: 4px 8px; font-size: 12px; color: var(--t3); cursor: pointer;
+  display: flex; align-items: center; gap: 5px; transition: all 100ms ease;
+  border-left: 2px solid transparent; margin: 0 4px;
+}
+.tree-item:hover { color: var(--t2); background: var(--bg-2); }
+.tree-item.active { color: var(--t1); background: var(--bg-2); border-left-color: var(--accent); }
+.tree-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.tree-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.tree-item .badge {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  flex-shrink: 0;
+}
+.tree-item .file-ext {
+  font-family: var(--mono); font-size: 10px; color: var(--t4);
+  flex-shrink: 0;
+}
+.tree-item .file-ext.pdf { color: var(--err); }
+.tree-item .file-ext.md { color: var(--accent); }
+.tree-item .file-ext.img { color: var(--warn); }
+.tree-item .file-ext.doc { color: #6B9BD2; }
+
+/* File type icon colors */
+.icon-pdf svg { stroke: var(--err) !important; }
+.icon-md svg { stroke: var(--accent) !important; }
+.icon-img svg { stroke: var(--warn) !important; }
+.icon-doc svg { stroke: #6B9BD2 !important; }
+.icon-folder svg { stroke: var(--t2) !important; }
+
+/* Attachment file type icons */
+.att .icon-pdf svg { stroke: var(--err); opacity: 0.7; }
+.att .icon-md svg { stroke: var(--accent); opacity: 0.7; }
+.att .icon-img svg { stroke: var(--warn); opacity: 0.7; }
+
+/* File link type icons */
+.file-link .icon-pdf { color: var(--err); opacity: 0.7; }
+.file-link .icon-md { color: var(--accent); opacity: 0.7; }
+.file-link .icon-img { color: var(--warn); opacity: 0.7; }
+
+/* File Preview */
+.file-preview { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.preview-head {
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--t2); font-family: var(--mono);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.preview-actions { display: flex; gap: 4px; }
+.preview-btn {
+  padding: 3px 8px; background: none; border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t3); font: 11px var(--font); cursor: pointer;
+  transition: all 150ms ease; display: flex; align-items: center; gap: 4px;
+}
+.preview-btn:hover { border-color: var(--t3); color: var(--t2); }
+.preview-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.preview-content {
+  flex: 1; overflow-y: auto; padding: 16px; font-size: 13px; color: var(--t2); line-height: 1.7;
+}
+.preview-content h1 { font-size: 17px; color: var(--t1); margin-bottom: 12px; font-weight: 600; }
+.preview-content h2 { font-size: 14px; color: var(--t1); margin: 16px 0 6px; font-weight: 600; }
+.preview-content h3 { font-size: 13px; color: var(--t1); margin: 10px 0 4px; font-weight: 600; }
+.preview-content ul, .preview-content ol { padding-left: 20px; margin: 4px 0; }
+.preview-content li { margin: 3px 0; }
+.preview-content p { margin: 6px 0; }
+
+/* ===== File Modal (Full-screen viewer) ===== */
+.file-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms ease;
+  backdrop-filter: blur(4px);
+}
+.file-overlay.visible { opacity: 1; pointer-events: auto; }
+.file-modal {
+  width: 720px; max-width: 90vw; max-height: 85vh;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--r-lg); display: flex; flex-direction: column;
+  transform: scale(0.95) translateY(10px); transition: transform 200ms ease;
+  overflow: hidden;
+}
+.file-overlay.visible .file-modal { transform: scale(1) translateY(0); }
+.file-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.file-modal-title { font-size: 13px; color: var(--t2); font-family: var(--mono); display: flex; align-items: center; gap: 8px; }
+.file-modal-title svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.file-modal-actions { display: flex; align-items: center; gap: 4px; }
+.file-modal-btn {
+  padding: 4px 10px; background: none; border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t3); font: 11px var(--font); cursor: pointer;
+  transition: all 150ms ease; display: flex; align-items: center; gap: 4px;
+}
+.file-modal-btn:hover { border-color: var(--t3); color: var(--t2); }
+.file-modal-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.file-modal-close {
+  width: 28px; height: 28px; background: none; border: none; color: var(--t3);
+  cursor: pointer; border-radius: var(--r-sm); display: flex;
+  align-items: center; justify-content: center; transition: all 150ms ease;
+  margin-left: 8px;
+}
+.file-modal-close:hover { background: var(--bg-3); color: var(--t1); }
+.file-modal-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.file-modal-body {
+  flex: 1; overflow-y: auto; padding: 24px 28px;
+}
+.file-modal-body h1 { font-size: 20px; color: var(--t1); margin-bottom: 16px; font-weight: 600; }
+.file-modal-body h2 { font-size: 15px; color: var(--t1); margin: 20px 0 8px; font-weight: 600; }
+.file-modal-body h3 { font-size: 13px; color: var(--t1); margin: 12px 0 6px; font-weight: 600; }
+.file-modal-body ul, .file-modal-body ol { padding-left: 20px; margin: 6px 0; }
+.file-modal-body li { margin: 4px 0; font-size: 14px; color: var(--t2); line-height: 1.7; }
+.file-modal-body p { margin: 8px 0; font-size: 14px; color: var(--t2); line-height: 1.7; }
+.file-modal-body .entity { border-bottom: 1px dotted var(--t4); }
+
+/* ===== Demo Animation ===== */
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.msg[data-step] { opacity: 0; }
+.msg.revealed { opacity: 1; animation: msgSlideIn 0.4s ease-out forwards; }
+.streaming-cursor::after {
+  content: '▍'; color: var(--t3); animation: cursorBlink 1s step-end infinite;
+}
+.demo-btn {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  padding: 10px 24px; background: var(--accent); color: var(--bg-0); border: none;
+  border-radius: var(--r-md); font: 600 14px var(--font); cursor: pointer;
+  z-index: 200; box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+  transition: all 200ms ease; display: none;
+}
+.demo-btn:hover { background: var(--accent-hover); transform: translateX(-50%) scale(1.03); }
+.demo-btn.visible { display: block; }
+
+/* ===== New Project Modal ===== */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity 200ms ease;
+  backdrop-filter: blur(4px);
+}
+.overlay.visible { opacity: 1; pointer-events: auto; }
+.modal {
+  width: 400px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transform: scale(0.95) translateY(10px); transition: transform 200ms ease;
+}
+.overlay.visible .modal { transform: scale(1) translateY(0); }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 14px; font-weight: 600; color: var(--t1); display: flex; align-items: center; gap: 8px; }
+.modal-title svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; color: var(--t3); }
+.modal-x {
+  width: 28px; height: 28px; background: none; border: none; color: var(--t3);
+  cursor: pointer; border-radius: var(--r-sm); display: flex;
+  align-items: center; justify-content: center; transition: all 150ms ease;
+}
+.modal-x:hover { background: var(--bg-3); color: var(--t1); }
+.modal-x svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.modal-body { padding: 18px; }
+.modal-field { margin-bottom: 14px; }
+.modal-label { font-size: 12px; color: var(--t3); margin-bottom: 5px; display: block; }
+.modal-input {
+  width: 100%; padding: 8px 10px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t1); font: 14px var(--font); outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.modal-input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
+.modal-input::placeholder { color: var(--t4); }
+.modal-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.modal-tag {
+  padding: 2px 8px; background: var(--accent-dim); border-radius: var(--r-sm);
+  font-size: 12px; color: var(--accent); display: flex; align-items: center; gap: 4px;
+}
+.modal-tag .x { cursor: pointer; opacity: 0.5; }
+.modal-tag .x:hover { opacity: 1; }
+.modal-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 18px; border-top: 1px solid var(--border);
+}
+.modal-btn {
+  padding: 7px 16px; border-radius: var(--r-sm); font: 13px var(--font);
+  cursor: pointer; transition: all 150ms ease;
+}
+.modal-btn-cancel { background: none; border: 1px solid var(--border); color: var(--t3); }
+.modal-btn-cancel:hover { border-color: var(--t3); color: var(--t2); }
+.modal-btn-ok { background: var(--accent); border: none; color: var(--bg-0); font-weight: 600; }
+.modal-btn-ok:hover { background: var(--accent-hover); }
+
+/* ===== Floating Toggle (when panel collapsed) ===== */
+.panel-fab {
+  position: fixed; right: 16px; top: 56px; z-index: 50;
+  width: 32px; height: 32px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--t3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 150ms ease; opacity: 0; pointer-events: none;
+}
+.panel-fab.visible { opacity: 1; pointer-events: auto; }
+.panel-fab:hover { background: var(--bg-3); color: var(--t2); border-color: var(--t3); }
+.panel-fab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ===== Tooltip ===== */
+.tooltip {
+  position: fixed; padding: 4px 8px; background: var(--bg-3); border: 1px solid var(--border);
+  border-radius: var(--r-sm); font-size: 11px; color: var(--t2); pointer-events: none;
+  z-index: 300; opacity: 0; transition: opacity 100ms ease; white-space: nowrap;
+}
+.tooltip.visible { opacity: 1; }
+
+/* ===== Medical Data Components ===== */
+
+/* Patient Summary Card */
+.patient-card {
+  margin: 16px 0; border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg-2); overflow: hidden;
+}
+.patient-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.patient-card-title { font-size: 12px; color: var(--t3); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.patient-card-title svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.patient-card-body { padding: 14px; }
+.patient-row { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.patient-field { display: flex; align-items: baseline; gap: 6px; font-size: 13px; }
+.patient-field-label { color: var(--t3); white-space: nowrap; }
+.patient-field-value { color: var(--t1); }
+.patient-field-value.warn { color: var(--warn); }
+.patient-field-value.err { color: var(--err); }
+
+/* Medical Table (Lab Results) */
+.med-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.med-table th {
+  text-align: left; padding: 6px 10px; font-size: 11px; color: var(--t4);
+  font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.med-table td {
+  padding: 6px 10px; color: var(--t2); border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--mono); font-size: 12px;
+}
+.med-table tr:last-child td { border-bottom: none; }
+.med-table .val-normal { color: var(--t2); }
+.med-table .val-high { color: var(--warn); }
+.med-table .val-low { color: var(--err); }
+.med-table .val-critical { color: var(--err); font-weight: 600; }
+.med-table .val-unit { color: var(--t4); font-size: 11px; }
+.med-table .val-arrow { font-size: 10px; margin-left: 2px; }
+.med-table .val-arrow.up { color: var(--warn); }
+.med-table .val-arrow.down { color: var(--err); }
+.med-table .ref-range { color: var(--t4); font-size: 11px; }
+.med-table .item-name { font-family: var(--font); color: var(--t1); }
+.med-table .section-label {
+  font-family: var(--font); font-size: 11px; color: var(--t3); font-weight: 600;
+  padding: 8px 10px 4px; letter-spacing: 0.2px;
+}
+
+/* Medication List */
+.med-list { margin: 0; }
+.med-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.med-item:last-child { border-bottom: none; }
+.med-item-icon {
+  width: 18px; height: 18px; flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center; margin-top: 1px;
+}
+.med-item-icon svg { width: 14px; height: 14px; stroke: var(--t3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.med-item-info { flex: 1; min-width: 0; }
+.med-item-name { font-size: 13px; color: var(--t1); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.med-item-dose { font-family: var(--mono); font-size: 12px; color: var(--t2); }
+.med-item-detail { font-size: 12px; color: var(--t3); margin-top: 2px; }
+.med-item-status {
+  padding: 1px 6px; border-radius: var(--r-sm); font-size: 10px;
+  font-weight: 600; letter-spacing: 0.2px; flex-shrink: 0; margin-top: 2px;
+}
+.med-item-status.active { background: var(--accent-dim); color: var(--accent); }
+.med-item-status.adjusted { background: rgba(245,158,11,0.12); color: var(--warn); }
+.med-item-status.stopped { background: rgba(239,68,68,0.12); color: var(--err); }
+
+/* Risk Score Card */
+.risk-card {
+  display: flex; align-items: center; gap: 16px; padding: 12px 14px;
+}
+.risk-gauge {
+  width: 56px; height: 56px; flex-shrink: 0; position: relative;
+}
+.risk-gauge svg { width: 56px; height: 56px; transform: rotate(-90deg); }
+.risk-gauge .gauge-bg { fill: none; stroke: var(--bg-3); stroke-width: 3; }
+.risk-gauge .gauge-fill { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+.risk-gauge .gauge-fill.low { stroke: var(--ok); }
+.risk-gauge .gauge-fill.mid { stroke: var(--warn); }
+.risk-gauge .gauge-fill.high { stroke: var(--err); }
+.risk-gauge-value {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; color: var(--t1); font-family: var(--mono);
+}
+.risk-info { flex: 1; }
+.risk-label { font-size: 13px; color: var(--t1); margin-bottom: 2px; }
+.risk-desc { font-size: 12px; color: var(--t3); }
+.risk-level {
+  display: inline-block; padding: 1px 6px; border-radius: var(--r-sm);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.2px; margin-left: 6px;
+}
+.risk-level.low { background: rgba(16,185,129,0.12); color: var(--ok); }
+.risk-level.mid { background: rgba(245,158,11,0.12); color: var(--warn); }
+.risk-level.high { background: rgba(239,68,68,0.12); color: var(--err); }
+
+/* Warning / Alert Card */
+.warn-card {
+  margin: 4px 0; border: none; border-radius: 0;
+  background: none; padding: 4px 0; display: flex; align-items: flex-start; gap: 8px;
+}
+.warn-card.err { background: none; }
+.warn-icon { flex-shrink: 0; margin-top: 1px; }
+.warn-icon svg { width: 16px; height: 16px; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.warn-card:not(.err) .warn-icon svg { stroke: var(--warn); fill: none; }
+.warn-card.err .warn-icon svg { stroke: var(--err); fill: none; }
+.warn-content { flex: 1; }
+.warn-title { font-size: 12px; font-weight: 600; color: var(--t1); margin-bottom: 4px; }
+.warn-text { font-size: 12px; color: var(--t2); line-height: 1.6; }
+.warn-card:not(.err) .warn-title { color: var(--warn); }
+.warn-card.err .warn-title { color: var(--err); }
+
+/* ICD Code Display */
+.icd-list { display: flex; flex-direction: column; gap: 4px; }
+.icd-item {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  font-size: 12px;
+}
+.icd-code {
+  font-family: var(--mono); color: var(--t3); background: var(--bg-3);
+  padding: 1px 6px; border-radius: var(--r-sm); font-size: 11px; flex-shrink: 0;
+}
+.icd-name { color: var(--t1); font-size: 13px; }
+.icd-primary { border-left: 2px solid var(--accent); padding-left: 8px; }
+.icd-primary .icd-code { color: var(--accent); background: var(--accent-dim); }
+
+/* Treatment Timeline */
+.tx-timeline { position: relative; padding-left: 20px; }
+.tx-timeline::before {
+  content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px;
+  width: 1px; background: var(--border);
+}
+.tx-phase { position: relative; padding-bottom: 16px; }
+.tx-phase:last-child { padding-bottom: 0; }
+.tx-phase-dot {
+  position: absolute; left: -20px; top: 3px; width: 11px; height: 11px;
+  border-radius: 50%; border: 2px solid var(--t4); background: var(--bg-2);
+}
+.tx-phase-dot.active { border-color: var(--accent); background: var(--accent); }
+.tx-phase-dot.done { border-color: var(--ok); background: var(--ok); }
+.tx-phase-label { font-size: 11px; color: var(--t3); font-weight: 600; letter-spacing: 0.2px; text-transform: uppercase; margin-bottom: 4px; }
+.tx-phase-title { font-size: 13px; color: var(--t1); margin-bottom: 2px; }
+.tx-phase-desc { font-size: 12px; color: var(--t3); line-height: 1.5; }
+.tx-phase-goal { font-size: 12px; color: var(--accent); margin-top: 2px; }
+
+/* Follow-up Schedule */
+.followup-list { display: flex; flex-direction: column; gap: 6px; }
+.followup-item {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+  border-radius: var(--r-sm); background: var(--bg-3);
+}
+.followup-date { font-family: var(--mono); font-size: 12px; color: var(--t3); flex-shrink: 0; min-width: 72px; }
+.followup-content { font-size: 12px; color: var(--t1); flex: 1; }
+.followup-tag {
+  padding: 1px 6px; border-radius: var(--r-sm); font-size: 10px;
+  font-weight: 600; flex-shrink: 0;
+}
+.followup-tag.routine { background: rgba(16,185,129,0.12); color: var(--ok); }
+.followup-tag.urgent { background: rgba(245,158,11,0.12); color: var(--warn); }
+
+/* Vital Signs */
+.vitals-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.vital-item {
+  padding: 10px; background: var(--bg-3); border-radius: var(--r-sm);
+}
+.vital-label { font-size: 11px; color: var(--t3); margin-bottom: 4px; }
+.vital-value { font-size: 18px; font-weight: 600; color: var(--t1); font-family: var(--mono); }
+.vital-value.warn { color: var(--warn); }
+.vital-value.err { color: var(--err); }
+.vital-unit { font-size: 11px; color: var(--t4); font-weight: 400; margin-left: 2px; }
+.vital-trend { font-size: 11px; color: var(--t4); margin-top: 2px; display: flex; align-items: center; gap: 3px; }
+.vital-trend svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Allergy Badge */
+.allergy-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.allergy-badge {
+  padding: 1px 6px; border-radius: var(--r-sm); font-size: 10px;
+  font-weight: 600; flex-shrink: 0;
+}
+.allergy-badge.drug { background: rgba(239,68,68,0.12); color: var(--err); }
+.allergy-badge.food { background: rgba(245,158,11,0.12); color: var(--warn); }
+.allergy-name { font-size: 13px; color: var(--t1); }
+.allergy-reaction { font-size: 12px; color: var(--t3); }
+
+/* Dose Change Card */
+.dose-change {
+  padding: 8px 12px; border-radius: var(--r-sm); background: var(--bg-3); margin: 4px 0;
+  font-size: 12px; font-family: var(--mono); color: var(--t2);
+}
+.dose-old { text-decoration: line-through; color: var(--t4); }
+.dose-new { color: var(--accent); }
+.dose-arrow { color: var(--t4); margin: 0 6px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-brand">MeDEX</div>
+    <div class="topbar-sep"></div>
+    <span class="topbar-info">张三</span>
+    <div class="topbar-right">
+      <button class="topbar-btn" title="搜索">
+        <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="M14 14l-3-3"/></svg>
+      </button>
+      <button class="topbar-btn" id="themeToggle" title="切换主题">
+        <svg viewBox="0 0 16 16" class="icon-moon"><path d="M14 8A6 6 0 0 1 8 2a6 6 0 1 0 6 6z"/></svg>
+        <svg viewBox="0 0 16 16" class="icon-sun" style="display:none"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+      </button>
+      <button class="topbar-btn" title="设置">
+        <svg viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM8 5v3l2 2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <button class="sidebar-new" id="btnNew">
+          <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+          新建项目
+        </button>
+      </div>
+      <div class="sidebar-list">
+        <div class="sidebar-label">最近</div>
+        <div class="sidebar-item active">张三</div>
+        <div class="sidebar-item">李四</div>
+        <div class="sidebar-item">王五</div>
+        <div class="sidebar-label">归档</div>
+        <div class="sidebar-item">赵六</div>
+      </div>
+    </aside>
+
+    <!-- Center Chat -->
+    <main class="chat">
+      <div class="messages">
+
+        <!-- ===== Turn 1: User uploads files ===== -->
+        <div class="msg user-msg" data-step="1">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            You
+          </div>
+          <div class="msg-body">
+            <p>请帮我分析这位患者的情况。患者58岁男性，高血压3年，最近3个月血压控制不佳，自测在150-160/90-95mmHg。已上传门诊病历和检查报告。</p>
+            <p style="color:var(--t3);font-size:12px;margin-top:8px;font-family:var(--mono)">
+              门诊病历.pdf · 血常规报告.pdf · 生化全套.pdf · 用药记录.md · 心电图.png
+            </p>
+          </div>
+        </div>
+
+        <!-- ===== Turn 1: MeDEX reads files, creates plan ===== -->
+        <div class="msg ai-msg" data-step="2">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h2l1-3 2 6 1-3h2"/></svg>
+            MeDEX
+          </div>
+
+          <!-- Thinking -->
+          <div class="thinking">
+            <div class="thinking-head">
+              <svg viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+              thinking
+            </div>
+            <div class="thinking-body">患者58岁男性，高血压3年，2型糖尿病2年，血压控制不佳。上传了5份文件，需要逐一读取分析。重点关注：1）血压控制不达标原因 2）合并糖尿病的用药调整 3）靶器官损害评估 4）肾功能情况。</div>
+          </div>
+
+          <!-- Tool: FileManager reads files -->
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">FileManager</span>
+                <span class="tool-cmd">read → 门诊病历.pdf</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">0.3s</span>
+            </div>
+            <div class="tool-body">主诉：血压控制不佳3月余。现病史：高血压3年，氨氯地平5mg qd，血压150-160/90-95。2型糖尿病2年，二甲双胍500mg bid。既往高尿酸血症。家族史：父亲高血压、脑卒中。</div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">FileManager</span>
+                <span class="tool-cmd">read → 生化全套.pdf</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">0.4s</span>
+            </div>
+            <div class="tool-body">肝功能正常。肾功能：Cr 98, eGFR 78↓, UA 412↑。血糖：FBG 7.2↑, HbA1c 7.1%↑。血脂：TC 5.8↑, LDL-C 3.6↑, HDL-C 0.9↓。尿常规：蛋白+↑, 尿糖++↑。</div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">SubtaskManager</span>
+                <span class="tool-cmd">create_plan</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">0.1s</span>
+            </div>
+            <div class="tool-body">已创建4个子任务：1.分析主诉与病史 2.评估检查结果与靶器官损害 3.查询高血压合并糖尿病用药指南 4.生成诊断与用药方案报告</div>
+          </div>
+
+          <!-- Task Plan -->
+          <div class="task-group" id="taskPlan">
+            <div class="task-group-head">
+              <div class="task-group-title">
+                <svg viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                Task Plan
+              </div>
+              <div class="task-group-count">1/4</div>
+            </div>
+            <div class="task-group-body">
+              <div class="task-row">
+                <span class="task-indicator done"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="task-idx">1</span>
+                <span class="task-txt done">分析主诉与病史</span>
+                <span class="task-dur">0.3s</span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator running"><svg viewBox="0 0 16 16"><circle class="ring" cx="8" cy="8" r="6"/></svg></span>
+                <span class="task-idx">2</span>
+                <span class="task-txt running">评估检查结果与靶器官损害</span>
+                <span class="task-dur">...</span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator pending"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/></svg></span>
+                <span class="task-idx">3</span>
+                <span class="task-txt">查询高血压合并糖尿病用药指南</span>
+                <span class="task-dur"></span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator pending"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/></svg></span>
+                <span class="task-idx">4</span>
+                <span class="task-txt">生成诊断与用药方案报告</span>
+                <span class="task-dur"></span>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="msg-body"><p>我已阅读全部上传资料。该患者为58岁男性，有<span class="entity" title="疾病">高血压</span>3年、<span class="entity" title="疾病">2型糖尿病</span>2年病史，单药降压效果不佳。检查发现<span class="entity" title="检验">eGFR</span> 78（轻度下降）、<span class="entity" title="检验">UA</span> 412、<span class="entity" title="检验">FBG</span> 7.2、<span class="entity" title="检验">HbA1c</span> 7.1%、<span class="entity" title="检验">LDL-C</span> 3.6、尿蛋白+。正在进一步评估靶器官损害。</p></div>
+
+          <!-- Ask: clarify cardiac workup (will disappear after selection) -->
+          <div class="ask-block" id="ask1">
+            <div class="ask-title">
+              <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v2M8 9.5v.5"/></svg>
+              补充信息
+            </div>
+            <div class="ask-q">为评估靶器官损害，该患者是否进行过以下检查？</div>
+            <div class="ask-opts">
+              <div class="ask-opt" data-answer="做过心脏超声，报告显示左室壁增厚，室间隔12mm"><div class="ask-radio"></div>心脏超声</div>
+              <div class="ask-opt" data-answer="做过颈动脉超声"><div class="ask-radio"></div>颈动脉超声</div>
+              <div class="ask-opt" data-answer="做过冠状动脉CT"><div class="ask-radio"></div>冠状动脉CT</div>
+              <div class="ask-opt" data-answer="以上检查均未做过"><div class="ask-radio"></div>以上均无</div>
+            </div>
+            <button class="ask-confirm">确认并继续</button>
+          </div>
+        </div>
+
+        <!-- ===== Turn 2: User selected "心脏超声" ===== -->
+        <div class="msg user-msg" data-step="3">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            You
+          </div>
+          <div class="msg-body"><p>做过心脏超声，报告显示左室壁增厚，室间隔12mm</p></div>
+        </div>
+
+        <!-- ===== Turn 2: MeDEX processes cardiac data ===== -->
+        <div class="msg ai-msg" data-step="4">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h2l1-3 2 6 1-3h2"/></svg>
+            MeDEX
+          </div>
+
+          <!-- Task notice -->
+          <div class="task-notice">
+            <div class="task-notice-head">Task Update</div>
+            <div class="task-notice-body">
+              <span class="add">+ 新增</span> 2a. 评估左室肥厚临床意义<br>
+              <span class="mod">~ 修改</span> 2. 评估检查结果 → 补充心脏超声评估
+            </div>
+          </div>
+
+          <div class="msg-body"><p>患者存在左室肥厚（室间隔12mm），这是长期高血压导致靶器官损害的重要标志。结合 eGFR 78（<span class="entity" title="疾病">CKD 2期</span>）和尿蛋白+，提示<span class="entity" title="疾病">高血压性心脏病</span>可能。该患者合并高血压+糖尿病+CKD 2期+左室肥厚，属于<strong>心血管极高危人群</strong>。</p></div>
+
+          <!-- WebSearch tool -->
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">WebSearch</span>
+                <span class="tool-cmd">高血压合并CKD 糖尿病 用药指南 2024</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">1.8s</span>
+            </div>
+            <div class="tool-body">【中国高血压防治指南2024】合并CKD首选ARB/ACEI，可联合CCB。合并糖尿病时血压目标<130/80mmHg。ARB具有独立肾脏保护作用。【KDIGO 2024】CKD合并糖尿病建议首选ARB+SGLT2抑制剂。</div>
+          </div>
+
+          <div class="task-notice">
+            <div class="task-notice-head">Task Update</div>
+            <div class="task-notice-body">
+              <span class="mod">~ 修改</span> 3. 查询高血压合并糖尿病用药指南 → 查询高血压+糖尿病+CKD用药指南
+            </div>
+          </div>
+
+          <div class="msg-body">
+            <p>根据指南，该患者降压方案建议：在<span class="entity" title="药物">氨氯地平</span>基础上联合<span class="entity" title="药物">缬沙坦</span>（ARB类，兼具肾脏保护），目标血压 <130/80 mmHg。同时需启动<span class="entity" title="药物">阿托伐他汀</span>降脂（极高危LDL-C目标 <1.8 mmol/L）和<span class="entity" title="药物">非布司他</span>降尿酸。需避免噻嗪类利尿剂（高尿酸）和NSAIDs（CKD）。</p>
+            <p style="color:var(--warn);font-size:13px;margin-top:8px">⚠ 药物相互作用：氨氯地平与缬沙坦联用需注意低血压风险，建议从小剂量起始。ARB类药物需定期复查肾功能和血钾。</p>
+            <p style="color:var(--err);font-size:13px">⚠ 过敏史：青霉素（皮疹）、海鲜（荨麻疹）</p>
+          </div>
+
+          <div class="msg-body">
+            <p>已生成初步分析报告：<a class="file-link" data-file="analyze_report_20260530.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> analyze_report_20260530.md</a></p>
+          </div>
+        </div>
+
+        <!-- ===== Turn 3: User asks for medication plan ===== -->
+        <div class="msg user-msg" data-step="5">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            You
+          </div>
+          <div class="msg-body"><p>好的，请给出具体的用药调整方案。</p></div>
+        </div>
+
+        <!-- ===== Turn 3: MeDEX proposes medication ===== -->
+        <div class="msg ai-msg" data-step="6">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h2l1-3 2 6 1-3h2"/></svg>
+            MeDEX
+          </div>
+
+          <!-- Thinking -->
+          <div class="thinking">
+            <div class="thinking-head">
+              <svg viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+              thinking
+            </div>
+            <div class="thinking-body">当前用药仅氨氯地平5mg+二甲双胍500mg bid，需联合ARB降压、加量二甲双胍控糖、启动他汀降脂、降尿酸、一级预防抗血小板。注意：1）缬沙坦起始剂量考虑eGFR 78 2）二甲双胍最大日剂量2g，加量至750mg bid可耐受 3）非布司他需监测肝功能 4）阿司匹林需评估出血风险</div>
+          </div>
+
+          <div class="msg-body">
+            <p>当前用药方案评估完成，建议调整如下：</p>
+            <p style="margin:8px 0"><strong>1. 氨氯地平 5mg qd</strong> — 继续，钙通道阻滞剂，早餐后</p>
+            <p style="margin:8px 0"><strong>2. 缬沙坦 80mg qd</strong> — <span style="color:var(--accent)">新增</span>，ARB类，联合降压+肾脏保护+减少尿蛋白，早餐后</p>
+            <p style="margin:8px 0"><strong>3. 二甲双胍 750mg bid</strong> — <span style="color:var(--warn)">加量</span>（原500mg bid→750mg bid），加强血糖控制（HbA1c 7.1%>7%），餐中服用</p>
+            <p style="margin:8px 0"><strong>4. 阿托伐他汀 20mg qn</strong> — <span style="color:var(--accent)">新增</span>，极高危降脂（LDL-C目标<1.8），睡前服用</p>
+            <p style="margin:8px 0"><strong>5. 非布司他 20mg qd</strong> — <span style="color:var(--accent)">新增</span>，降尿酸（UA 412），注意监测肝功能，早餐后</p>
+            <p style="margin:8px 0"><strong>6. 阿司匹林 100mg qd</strong> — <span style="color:var(--accent)">新增</span>，心血管极高危一级预防，需评估出血风险，早餐后</p>
+          </div>
+
+          <!-- Ask: confirm medication dose -->
+          <div class="ask-block" id="ask2">
+            <div class="ask-title">
+              <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v2M8 9.5v.5"/></svg>
+              确认方案
+            </div>
+            <div class="ask-q">缬沙坦起始剂量选择？eGFR 78时80mg qd为推荐起始量。</div>
+            <div class="ask-opts">
+              <div class="ask-opt" data-answer="同意80mg qd起始方案"><div class="ask-radio"></div>80mg qd（推荐起始）</div>
+              <div class="ask-opt" data-answer="选择160mg qd较高起始剂量"><div class="ask-radio"></div>160mg qd（较高起始）</div>
+              <div class="ask-opt" data-answer="暂不加用缬沙坦"><div class="ask-radio"></div>暂不加用缬沙坦</div>
+            </div>
+            <button class="ask-confirm">确认并继续</button>
+          </div>
+        </div>
+
+        <!-- ===== Turn 4: User selected 80mg qd ===== -->
+        <div class="msg user-msg" data-step="7">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            You
+          </div>
+          <div class="msg-body"><p>同意80mg qd起始方案。请生成完整报告和随访计划。</p></div>
+        </div>
+
+        <!-- ===== Turn 4: MeDEX generates reports ===== -->
+        <div class="msg ai-msg" data-step="8">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h2l1-3 2 6 1-3h2"/></svg>
+            MeDEX
+          </div>
+
+          <!-- Tool: MedicalDocGen -->
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">MedicalDocGen</span>
+                <span class="tool-cmd">generate → treatment_plan.md</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">1.2s</span>
+            </div>
+            <div class="tool-body">已生成治疗方案报告：treatment_plan.md — 三阶段治疗（0-2周启动联合降压，2-4周评估调整，1-3月长期达标）</div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">MedicalDocGen</span>
+                <span class="tool-cmd">generate → medication_plan.md</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">0.9s</span>
+            </div>
+            <div class="tool-body">已生成用药方案报告：medication_plan.md — 6种药物详细方案</div>
+          </div>
+
+          <div class="tool-card">
+            <div class="tool-head">
+              
+                <svg class="tool-chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                <span class="tool-name">MedicalDocGen</span>
+                <span class="tool-cmd">generate → full_report_20260530.md</span> <span class="tool-status ok"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="tool-dur">1.5s</span>
+            </div>
+            <div class="tool-body">已生成完整分析报告：full_report_20260530.md — 含诊断、检验、风险评估、用药方案、随访计划</div>
+          </div>
+
+          <!-- Updated Task Plan (all done) -->
+          <div class="task-group" id="taskPlanFinal">
+            <div class="task-group-head">
+              <div class="task-group-title">
+                <svg viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                Task Plan
+              </div>
+              <div class="task-group-count">4/4</div>
+            </div>
+            <div class="task-group-body">
+              <div class="task-row">
+                <span class="task-indicator done"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="task-idx">1</span>
+                <span class="task-txt done">分析主诉与病史</span>
+                <span class="task-dur">0.3s</span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator done"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="task-idx">2</span>
+                <span class="task-txt done">评估检查结果与靶器官损害</span>
+                <span class="task-dur">1.2s</span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator done"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="task-idx">3</span>
+                <span class="task-txt done">查询高血压+糖尿病+CKD用药指南</span>
+                <span class="task-dur">1.8s</span>
+              </div>
+              <div class="task-row">
+                <span class="task-indicator done"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg></span>
+                <span class="task-idx">4</span>
+                <span class="task-txt done">生成诊断与用药方案报告</span>
+                <span class="task-dur">3.6s</span>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="msg-body">
+            <p>方案已确认，所有报告已生成：</p>
+            <p>
+              <a class="file-link" data-file="treatment_plan.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> treatment_plan.md</a> — 三阶段治疗方案<br>
+              <a class="file-link" data-file="medication_plan.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> medication_plan.md</a> — 用药调整详情<br>
+              <a class="file-link" data-file="followup_schedule.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> followup_schedule.md</a> — 随访计划<br>
+              <a class="file-link" data-file="guideline_summary_hypertension_2024.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> guideline_summary_hypertension_2024.md</a> — 指南摘要<br>
+              <a class="file-link" data-file="full_report_20260530.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> full_report_20260530.md</a> — 完整分析报告<br>
+              <a class="file-link" data-file="risk_assessment.md"><svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> risk_assessment.md</a> — 风险评估
+            </p>
+          </div>
+
+          <div class="msg-body">
+            <p>随访要点：2周后复查血压、血糖、肾功能、肝功能、血钾；4周后评估降压效果；3月后复查HbA1c、血脂、心脏超声。如头晕加重或肌痛乏力，立即就诊。</p>
+          </div>
+
+          <!-- Ask: input for follow-up -->
+          <div class="ask-block" id="ask3">
+            <div class="ask-title">
+              <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v2M8 9.5v.5"/></svg>
+              确认复诊
+            </div>
+            <div class="ask-q">请确认下次复诊日期及当前血压：</div>
+            <div class="ask-fields">
+              <div class="ask-field-row">
+                <span class="ask-field-label">复诊日期</span>
+                <input class="ask-field-input" type="date" value="2026-06-13">
+              </div>
+              <div class="ask-field-row">
+                <span class="ask-field-label">收缩压</span>
+                <input class="ask-field-input" type="number" placeholder="152">
+                <span class="ask-field-unit">mmHg</span>
+              </div>
+              <div class="ask-field-row">
+                <span class="ask-field-label">舒张压</span>
+                <input class="ask-field-input" type="number" placeholder="96">
+                <span class="ask-field-unit">mmHg</span>
+              </div>
+            </div>
+            <button class="ask-confirm">确认并继续</button>
+          </div>
+        </div>
+
+        <!-- ===== Turn 5: User confirms follow-up ===== -->
+        <div class="msg user-msg" data-step="9">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            You
+          </div>
+          <div class="msg-body"><p>复诊日期 2026-06-13，血压 152/96 mmHg</p></div>
+        </div>
+
+        <!-- ===== Turn 5: MeDEX final confirmation ===== -->
+        <div class="msg ai-msg" data-step="10">
+          <div class="msg-role">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h2l1-3 2 6 1-3h2"/></svg>
+            MeDEX
+          </div>
+
+          <div class="msg-body">
+            <p>已记录。复诊日期 2026-06-13，当前血压 152/96 mmHg。请按时服药并注意：</p>
+            <p style="margin:6px 0">1. 每日监测血压，记录早晚各一次</p>
+            <p style="margin:6px 0">2. 缬沙坦开始服用后注意有无头晕（低血压可能）</p>
+            <p style="margin:6px 0">3. 二甲双胍加量后注意胃肠道反应，餐中服用可减轻</p>
+            <p style="margin:6px 0">4. 如出现肌痛、乏力，及时就诊查CK（他汀肌损害）</p>
+            <p style="margin:6px 0">5. 低盐低脂饮食，每日运动30分钟，目标BMI <24</p>
+            <p style="margin-top:12px">如病情变化，随时在对话中补充信息，我会继续跟进分析。</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Input -->
+      <div class="input-area">
+        <div class="attachments">
+          <div class="att">
+            <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+            血常规.pdf (1.2MB) <span class="x">✕</span>
+          </div>
+          <div class="att">
+            <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+            CT.png (3.4MB) <span class="x">✕</span>
+          </div>
+        </div>
+        <div class="input-box">
+          <div class="input-row">
+            <input type="file" id="fileInput" multiple style="display:none" accept=".pdf,.md,.png,.jpg,.doc,.docx,.txt,.json">
+            <button class="input-attach" id="btnAttach" title="上传文件">
+              <svg viewBox="0 0 16 16"><path d="M8 10V3M5 6l3-3 3 3"/><path d="M2 10v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+            </button>
+            <textarea class="input-text" rows="2" placeholder="输入医学问题，或使用 / 选择技能..."></textarea>
+            <button class="input-send">
+              <svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12-2-5-4-1z"/></svg>
+            </button>
+          </div>
+          <div class="input-footer">
+            <div class="input-footer-left">
+              <div class="model-selector">
+                <button class="model-btn" id="modelBtn">
+                  <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5v6"/></svg>
+                  <span class="model-name" id="currentModel">DeepSeek-V3</span>
+                  <svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+                </button>
+                <div class="model-dropdown" id="modelDropdown">
+                  <div class="model-option selected" data-model="DeepSeek-V3">
+                    <div class="model-option-info">
+                      <span class="model-option-name">DeepSeek-V3</span>
+                      <span class="model-option-desc">通用模型 · 平衡速度与精度</span>
+                    </div>
+                    <svg class="model-option-check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6"/></svg>
+                  </div>
+                  <div class="model-option" data-model="Qwen-Max">
+                    <div class="model-option-info">
+                      <span class="model-option-name">Qwen-Max</span>
+                      <span class="model-option-desc">阿里云 · 长文本理解</span>
+                    </div>
+                  </div>
+                  <div class="model-option" data-model="GPT-4o">
+                    <div class="model-option-info">
+                      <span class="model-option-name">GPT-4o</span>
+                      <span class="model-option-desc">OpenAI · 多模态推理</span>
+                    </div>
+                  </div>
+                  <div class="model-option" data-model="Claude-Sonnet">
+                    <div class="model-option-info">
+                      <span class="model-option-name">Claude Sonnet 4.6</span>
+                      <span class="model-option-desc">Anthropic · 医学推理优化</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="skill-btn" id="skillBtn">
+                <svg viewBox="0 0 16 16"><path d="M8 1v14M1 8h14"/></svg>
+                Skills
+              </button>
+              <div class="skill-tags" id="skillTags"></div>
+              <div class="skill-dropdown" id="skillDropdown">
+                <div class="skill-dropdown-title">Medical Skills</div>
+                <div class="skill-option" data-skill="/analyze">
+                  <svg viewBox="0 0 16 16"><path d="M3 2h10v12H3z"/><path d="M6 6h4M6 8h4M6 10h2"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/analyze</span>
+                    <span class="skill-option-desc">综合分析患者数据</span>
+                  </div>
+                </div>
+                <div class="skill-option" data-skill="/prescribe">
+                  <svg viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M7 5h2M7 8h2"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/prescribe</span>
+                    <span class="skill-option-desc">生成用药方案</span>
+                  </div>
+                </div>
+                <div class="skill-option" data-skill="/guideline">
+                  <svg viewBox="0 0 16 16"><path d="M2 2h12v12H2z"/><path d="M5 6h6M5 8h6M5 10h3"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/guideline</span>
+                    <span class="skill-option-desc">查询临床指南</span>
+                  </div>
+                </div>
+                <div class="skill-option" data-skill="/report">
+                  <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/report</span>
+                    <span class="skill-option-desc">生成结构化报告</span>
+                  </div>
+                </div>
+                <div class="skill-option" data-skill="/risk">
+                  <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/risk</span>
+                    <span class="skill-option-desc">风险评估计算</span>
+                  </div>
+                </div>
+                <div class="skill-option" data-skill="/followup">
+                  <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M5 2v3M11 2v3"/></svg>
+                  <div class="skill-option-info">
+                    <span class="skill-option-name">/followup</span>
+                    <span class="skill-option-desc">制定随访计划</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="input-footer-right">
+              <span>Shift + Enter 换行 · Enter 发送</span>
+              <span>18 文件 · 12.4MB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Resize Handle -->
+    <div class="resize-handle" id="resizeHandle"></div>
+
+    <!-- Right File Panel -->
+    <aside class="file-panel" id="filePanel">
+      <div class="file-panel-head">
+        <div class="file-panel-title">
+          <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+          Files
+        </div>
+        <div class="file-panel-actions">
+          <button class="file-panel-btn" id="btnUpload">
+            <svg viewBox="0 0 16 16"><path d="M8 10V3M5 6l3-3 3 3"/><path d="M2 10v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+            Upload
+          </button>
+          <button class="panel-toggle" id="btnCollapsePanel" title="收起面板">
+            <svg viewBox="0 0 16 16"><path d="M10 3L5 8l5 5"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="file-panel-body">
+        <!-- File Tree -->
+        <div class="file-tree" id="fileTree">
+          <!-- Root: uploads/ -->
+          <div class="tree-folder open">
+            <div class="tree-folder-head">
+              <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+              <svg viewBox="0 0 16 16"><path d="M2 4h12v10H2z"/><path d="M2 4l3-2h6l3 2"/></svg>
+              <span>uploads</span>
+            </div>
+            <div class="tree-folder-children">
+              <!-- 子文件夹: 检验报告 -->
+              <div class="tree-folder open" style="margin-left:8px">
+                <div class="tree-folder-head">
+                  <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                  <svg viewBox="0 0 16 16"><path d="M2 4h12v10H2z"/><path d="M2 4l3-2h6l3 2"/></svg>
+                  <span>检验报告</span>
+                </div>
+                <div class="tree-folder-children">
+                  <div class="tree-item icon-pdf" data-file="blood_routine_20260528.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                    <span class="tree-item-name">血常规</span>
+                    <span class="file-ext pdf">.pdf</span>
+                  </div>
+                  <div class="tree-item icon-pdf" data-file="liver_kidney_20260528.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                    <span class="tree-item-name">肝肾功能</span>
+                    <span class="file-ext pdf">.pdf</span>
+                  </div>
+                  <div class="tree-item icon-pdf" data-file="lipid_glucose_20260528.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                    <span class="tree-item-name">血脂血糖</span>
+                    <span class="file-ext pdf">.pdf</span>
+                  </div>
+                  <div class="tree-item icon-pdf" data-file="urinalysis_20260528.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                    <span class="tree-item-name">尿常规</span>
+                    <span class="file-ext pdf">.pdf</span>
+                  </div>
+                  <div class="tree-item icon-pdf" data-file="hba1c_20260528.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                    <span class="tree-item-name">糖化血红蛋白</span>
+                    <span class="file-ext pdf">.pdf</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 子文件夹: 影像报告 -->
+              <div class="tree-folder" style="margin-left:8px">
+                <div class="tree-folder-head">
+                  <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+                  <svg viewBox="0 0 16 16"><path d="M2 4h12v10H2z"/><path d="M2 4l3-2h6l3 2"/></svg>
+                  <span>影像报告</span>
+                </div>
+                <div class="tree-folder-children">
+                  <div class="tree-item icon-img" data-file="chest_ct_20260515.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1"/><circle cx="8" cy="8" r="3"/></svg>
+                    <span class="tree-item-name">胸部CT</span>
+                    <span class="file-ext img">.img</span>
+                  </div>
+                  <div class="tree-item icon-img" data-file="ecg_20260520.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><path d="M2 8h2l2-4 3 8 2-4h3"/></svg>
+                    <span class="tree-item-name">心电图</span>
+                    <span class="file-ext img">.img</span>
+                  </div>
+                  <div class="tree-item icon-img" data-file="abdomen_us_20260522.pdf" style="margin-left:16px">
+                    <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1"/><circle cx="8" cy="8" r="3"/></svg>
+                    <span class="tree-item-name">腹部超声</span>
+                    <span class="file-ext img">.img</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 根级文件 -->
+              <div class="tree-item icon-md" data-file="outpatient_20260520.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                <span class="tree-item-name">门诊记录</span>
+                <span class="file-ext md">.md</span>
+              </div>
+              <div class="tree-item icon-md" data-file="medical_history.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                <span class="tree-item-name">既往病史</span>
+                <span class="file-ext md">.md</span>
+              </div>
+              <div class="tree-item icon-md" data-file="medication_list.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M7 5h2M7 8h2"/></svg>
+                <span class="tree-item-name">用药清单</span>
+                <span class="file-ext md">.md</span>
+              </div>
+              <div class="tree-item icon-md" data-file="allergy_record.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v2M8 9.5v.5"/></svg>
+                <span class="tree-item-name">过敏记录</span>
+                <span class="file-ext md">.md</span>
+              </div>
+            </div>
+          </div>
+          <!-- Root: generated/ -->
+          <div class="tree-folder open">
+            <div class="tree-folder-head">
+              <svg class="chevron" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></svg>
+              <svg viewBox="0 0 16 16"><path d="M2 4h12v10H2z"/><path d="M2 4l3-2h6l3 2"/></svg>
+              <span>generated</span>
+            </div>
+            <div class="tree-folder-children">
+              <div class="tree-item icon-md active" data-file="analyze_report_20260530.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                <span class="tree-item-name">分析报告</span>
+                <span class="badge"></span>
+              </div>
+              <div class="tree-item icon-md" data-file="treatment_plan.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M7 5h2M7 8h2"/></svg>
+                <span class="tree-item-name">用药方案</span>
+                <span class="badge"></span>
+              </div>
+              <div class="tree-item icon-md" data-file="medication_plan.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M7 5h2M7 8h2"/></svg>
+                <span class="tree-item-name">处方调整</span>
+                <span class="badge"></span>
+              </div>
+              <div class="tree-item icon-md" data-file="guideline_summary.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                <span class="tree-item-name">指南摘要</span>
+                <span class="file-ext md">.md</span>
+              </div>
+              <div class="tree-item icon-md" data-file="followup_schedule.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M5 2v3M11 2v3"/></svg>
+                <span class="tree-item-name">随访计划</span>
+                <span class="file-ext md">.md</span>
+              </div>
+              <div class="tree-item icon-md" data-file="full_report_20260530.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+                <span class="tree-item-name">完整报告</span>
+                <span class="badge"></span>
+              </div>
+              <div class="tree-item icon-md" data-file="risk_assessment.md" style="margin-left:8px">
+                <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/></svg>
+                <span class="tree-item-name">风险评估</span>
+                <span class="badge"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- File Preview -->
+        <div class="file-preview">
+          <div class="preview-head">
+            <span id="previewFileName">analyze_report_20260530.md</span>
+            <div class="preview-actions">
+              <button class="preview-btn" id="btnExpandFile" title="放大查看">
+                <svg viewBox="0 0 16 16"><path d="M2 8h12M8 2v12"/></svg>
+                展开
+              </button>
+              <button class="preview-btn" title="下载">
+                <svg viewBox="0 0 16 16"><path d="M8 10V3M5 6l3-3 3 3"/><path d="M2 10v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="preview-content" id="previewContent">
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- Floating Toggle Button (when panel is collapsed) -->
+<button class="panel-fab" id="panelFab" title="展开文件面板">
+  <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+</button>
+
+<!-- File Modal (Full-screen viewer) -->
+<div class="file-overlay" id="fileOverlay">
+  <div class="file-modal">
+    <div class="file-modal-head">
+      <div class="file-modal-title">
+        <svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg>
+        <span id="fileModalName">analyze_report_20260530.md</span>
+      </div>
+      <div class="file-modal-actions">
+        <button class="file-modal-btn" title="下载">
+          <svg viewBox="0 0 16 16"><path d="M8 10V3M5 6l3-3 3 3"/><path d="M2 10v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></svg>
+          下载
+        </button>
+        <button class="file-modal-btn" title="复制">
+          <svg viewBox="0 0 16 16"><rect x="4" y="4" width="9" height="9" rx="1"/><path d="M3 12V3a1 1 0 0 1 1-1h9"/></svg>
+          复制
+        </button>
+        <button class="file-modal-close" id="fileModalClose">
+          <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-modal-body" id="fileModalBody">
+      <h1>患者综合分析报告</h1>
+
+      <h2>基本信息</h2>
+      <table class="med-table" style="margin-bottom:16px">
+        <tbody>
+          <tr><td class="item-name">姓名</td><td>张三</td><td class="item-name">性别</td><td>男</td></tr>
+          <tr><td class="item-name">年龄</td><td>58岁</td><td class="item-name">BMI</td><td class="val-high">26.8 ↑</td></tr>
+          <tr><td class="item-name">血型</td><td>A型 Rh+</td><td class="item-name">过敏史</td><td class="val-high">青霉素（皮疹）、海鲜（荨麻疹）</td></tr>
+        </tbody>
+      </table>
+
+      <h2>主诉</h2>
+      <p>血压控制不佳3月</p>
+
+      <h2>既往史</h2>
+      <ul>
+        <li><span class="entity" title="疾病">高血压</span> 3年，口服 <span class="entity" title="药物">氨氯地平</span> 5mg qd，血压控制不佳</li>
+        <li><span class="entity" title="疾病">2型糖尿病</span> 2年，口服 <span class="entity" title="药物">二甲双胍</span> 500mg bid</li>
+        <li><span class="entity" title="疾病">高尿酸血症</span>（既往未规律治疗）</li>
+      </ul>
+
+      <h2>诊断（ICD-10）</h2>
+      <div class="icd-list" style="margin-bottom:16px">
+        <div class="icd-item icd-primary"><span class="icd-code">I11.9</span><span class="icd-name">高血压性心脏病</span></div>
+        <div class="icd-item icd-primary"><span class="icd-code">E11.9</span><span class="icd-name">2型糖尿病</span></div>
+        <div class="icd-item"><span class="icd-code">E79.0</span><span class="icd-name">高尿酸血症</span></div>
+        <div class="icd-item"><span class="icd-code">N18.2</span><span class="icd-name">慢性肾脏病 2期</span></div>
+        <div class="icd-item"><span class="icd-code">E78.5</span><span class="icd-name">高脂血症</span></div>
+      </div>
+
+      <h2>检查结果异常项</h2>
+      <table class="med-table" style="margin-bottom:16px">
+        <thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>单位</th></tr></thead>
+        <tbody>
+          <tr><td class="item-name">FBG</td><td class="val-high">7.2 ↑</td><td class="ref-range">3.9–6.1</td><td class="val-unit">mmol/L</td></tr>
+          <tr><td class="item-name">HbA1c</td><td class="val-high">7.1% ↑</td><td class="ref-range">4.0–6.0%</td><td class="val-unit"></td></tr>
+          <tr><td class="item-name">eGFR</td><td class="val-high">78 ↓</td><td class="ref-range">>90</td><td class="val-unit">mL/min</td></tr>
+          <tr><td class="item-name">UA</td><td class="val-high">412 ↑</td><td class="ref-range">208–428</td><td class="val-unit">μmol/L</td></tr>
+          <tr><td class="item-name">LDL-C</td><td class="val-high">3.6 ↑</td><td class="ref-range">&lt;3.4</td><td class="val-unit">mmol/L</td></tr>
+          <tr><td class="item-name">HDL-C</td><td class="val-low">0.9 ↓</td><td class="ref-range">>1.0</td><td class="val-unit">mmol/L</td></tr>
+          <tr><td class="item-name">尿蛋白</td><td class="val-high">+ ↑</td><td class="ref-range">阴性</td><td class="val-unit"></td></tr>
+        </tbody>
+      </table>
+
+      <h2>风险评估</h2>
+      <p><strong>10年ASCVD风险：78%（高危）</strong> — 合并高血压+糖尿病+血脂异常，属心血管极高危人群。</p>
+      <p><strong>CKD进展风险：47%（中危）</strong> — eGFR 78 + 尿蛋白+，需密切监测肾功能。</p>
+
+      <h2>治疗方案</h2>
+      <h3>降压</h3>
+      <ul>
+        <li><span class="entity" title="药物">氨氯地平</span> 5mg qd（继续）</li>
+        <li><span class="entity" title="药物">缬沙坦</span> 80mg qd（新增）— 保护肾功能</li>
+      </ul>
+      <h3>降糖</h3>
+      <ul>
+        <li><span class="entity" title="药物">二甲双胍</span> 750mg bid（加量）</li>
+      </ul>
+      <h3>降脂</h3>
+      <ul>
+        <li><span class="entity" title="药物">阿托伐他汀</span> 20mg qn（新增）— LDL-C目标 &lt;1.8</li>
+      </ul>
+      <h3>降尿酸</h3>
+      <ul>
+        <li><span class="entity" title="药物">非布司他</span> 20mg qd（新增）— 注意肝功能</li>
+      </ul>
+      <h3>抗血小板</h3>
+      <ul>
+        <li><span class="entity" title="药物">阿司匹林</span> 100mg qd（新增）— 需评估出血风险</li>
+      </ul>
+
+      <h2>注意事项</h2>
+      <ul>
+        <li>缬沙坦：需定期复查肾功能和血钾</li>
+        <li>非布司他：需监测肝功能，心血管高危人群慎用</li>
+        <li>阿司匹林：需评估出血风险，尤其消化道</li>
+        <li>患者青霉素过敏，避免使用相关药物</li>
+      </ul>
+
+      <h2>随访计划</h2>
+      <ul>
+        <li>2周后：复查血压、血糖、肾功能、肝功能</li>
+        <li>4周后：调整用药后评估，心电图</li>
+        <li>3月后：HbA1c、血脂、心脏超声、颈动脉超声</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- New Project Modal -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+        新建患者项目
+      </span>
+      <button class="modal-x" id="modalClose">
+        <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label class="modal-label">患者姓名</label>
+        <input class="modal-input" placeholder="请输入">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">项目描述</label>
+        <input class="modal-input" placeholder="如：高血压 · 2型糖尿病">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">标签</label>
+        <input class="modal-input" placeholder="输入后回车添加">
+        <div class="modal-tags">
+          <span class="modal-tag">高血压 <span class="x">✕</span></span>
+          <span class="modal-tag">糖尿病 <span class="x">✕</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-btn modal-btn-cancel">取消</button>
+      <button class="modal-btn modal-btn-ok">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ===== File Content Database =====
+const fileContents = {
+  'blood_routine_20260528.pdf': {
+    name: '血常规报告',
+    html: `<h1>血常规检验报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-28 · 标本：静脉血</p>
+<table class="med-table"><thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>单位</th></tr></thead><tbody>
+<tr><td class="item-name">WBC</td><td class="val-normal">6.2</td><td class="ref-range">3.5–9.5</td><td class="val-unit">×10⁹/L</td></tr>
+<tr><td class="item-name">RBC</td><td class="val-normal">4.5</td><td class="ref-range">4.3–5.8</td><td class="val-unit">×10¹²/L</td></tr>
+<tr><td class="item-name">Hb</td><td class="val-normal">138</td><td class="ref-range">130–175</td><td class="val-unit">g/L</td></tr>
+<tr><td class="item-name">HCT</td><td class="val-normal">0.42</td><td class="ref-range">0.40–0.50</td><td class="val-unit">L/L</td></tr>
+<tr><td class="item-name">MCV</td><td class="val-normal">93</td><td class="ref-range">82–100</td><td class="val-unit">fL</td></tr>
+<tr><td class="item-name">MCH</td><td class="val-normal">30.7</td><td class="ref-range">27–34</td><td class="val-unit">pg</td></tr>
+<tr><td class="item-name">PLT</td><td class="val-normal">210</td><td class="ref-range">125–350</td><td class="val-unit">×10⁹/L</td></tr>
+<tr><td class="item-name">NEU%</td><td class="val-normal">62.3</td><td class="ref-range">40–75</td><td class="val-unit">%</td></tr>
+<tr><td class="item-name">LYM%</td><td class="val-normal">28.5</td><td class="ref-range">20–50</td><td class="val-unit">%</td></tr>
+</tbody></table>
+<p style="margin-top:12px;font-size:12px;color:var(--t3)">结论：血常规各项指标均在正常范围。</p>`
+  },
+  'liver_kidney_20260528.pdf': {
+    name: '肝肾功能',
+    html: `<h1>肝肾功能检验报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-28 · 标本：静脉血</p>
+<table class="med-table"><thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>单位</th></tr></thead><tbody>
+<tr><td colspan="4" class="section-label">肝功能</td></tr>
+<tr><td class="item-name">ALT</td><td class="val-normal">32</td><td class="ref-range">9–50</td><td class="val-unit">U/L</td></tr>
+<tr><td class="item-name">AST</td><td class="val-normal">28</td><td class="ref-range">15–40</td><td class="val-unit">U/L</td></tr>
+<tr><td class="item-name">ALB</td><td class="val-normal">42</td><td class="ref-range">40–55</td><td class="val-unit">g/L</td></tr>
+<tr><td class="item-name">GLB</td><td class="val-normal">28</td><td class="ref-range">20–40</td><td class="val-unit">g/L</td></tr>
+<tr><td class="item-name">TBIL</td><td class="val-normal">12.5</td><td class="ref-range">3.4–17.1</td><td class="val-unit">μmol/L</td></tr>
+<tr><td colspan="4" class="section-label">肾功能</td></tr>
+<tr><td class="item-name">Cr</td><td class="val-high">98 <span class="val-arrow up">↑</span></td><td class="ref-range">57–111</td><td class="val-unit">μmol/L</td></tr>
+<tr><td class="item-name">BUN</td><td class="val-normal">5.8</td><td class="ref-range">3.1–8.0</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">eGFR</td><td class="val-high">78 <span class="val-arrow down">↓</span></td><td class="ref-range">>90</td><td class="val-unit">mL/min</td></tr>
+<tr><td class="item-name">UA</td><td class="val-high">412 <span class="val-arrow up">↑</span></td><td class="ref-range">208–428</td><td class="val-unit">μmol/L</td></tr>
+<tr><td class="item-name">K⁺</td><td class="val-normal">4.2</td><td class="ref-range">3.5–5.3</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">Na⁺</td><td class="val-normal">141</td><td class="ref-range">137–147</td><td class="val-unit">mmol/L</td></tr>
+</tbody></table>
+<p style="margin-top:12px;font-size:12px;color:var(--t3)">结论：肌酐正常上限，eGFR偏低，尿酸偏高，需关注肾功能。</p>`
+  },
+  'lipid_glucose_20260528.pdf': {
+    name: '血脂血糖',
+    html: `<h1>血脂血糖检验报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-28 · 空腹</p>
+<table class="med-table"><thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>单位</th></tr></thead><tbody>
+<tr><td colspan="4" class="section-label">血糖</td></tr>
+<tr><td class="item-name">FBG</td><td class="val-high">7.2 <span class="val-arrow up">↑</span></td><td class="ref-range">3.9–6.1</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">HbA1c</td><td class="val-high">7.1% <span class="val-arrow up">↑</span></td><td class="ref-range">4.0–6.0%</td><td class="val-unit"></td></tr>
+<tr><td colspan="4" class="section-label">血脂</td></tr>
+<tr><td class="item-name">TC</td><td class="val-high">5.8 <span class="val-arrow up">↑</span></td><td class="ref-range">&lt;5.2</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">LDL-C</td><td class="val-high">3.6 <span class="val-arrow up">↑</span></td><td class="ref-range">&lt;3.4</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">HDL-C</td><td class="val-low">0.9 <span class="val-arrow down">↓</span></td><td class="ref-range">>1.0</td><td class="val-unit">mmol/L</td></tr>
+<tr><td class="item-name">TG</td><td class="val-normal">1.6</td><td class="ref-range">&lt;1.7</td><td class="val-unit">mmol/L</td></tr>
+</tbody></table>
+<p style="margin-top:12px;font-size:12px;color:var(--warn)">结论：血糖控制不佳(HbA1c 7.1%)，LDL-C偏高，HDL-C偏低。心血管极高危患者LDL-C目标应&lt;1.8mmol/L。</p>`
+  },
+  'urinalysis_20260528.pdf': {
+    name: '尿常规',
+    html: `<h1>尿常规检验报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-28 · 标本：中段尿</p>
+<table class="med-table"><thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>单位</th></tr></thead><tbody>
+<tr><td class="item-name">颜色</td><td class="val-normal">淡黄</td><td class="ref-range">淡黄</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">透明度</td><td class="val-normal">清晰</td><td class="ref-range">清晰</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">比重</td><td class="val-normal">1.018</td><td class="ref-range">1.003–1.030</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">pH</td><td class="val-normal">6.0</td><td class="ref-range">4.5–8.0</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">尿蛋白</td><td class="val-high">+ <span class="val-arrow up">↑</span></td><td class="ref-range">阴性</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">尿糖</td><td class="val-high">++ <span class="val-arrow up">↑</span></td><td class="ref-range">阴性</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">酮体</td><td class="val-normal">阴性</td><td class="ref-range">阴性</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">隐血</td><td class="val-normal">阴性</td><td class="ref-range">阴性</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">WBC</td><td class="val-normal">2–4</td><td class="ref-range">0–5/HPF</td><td class="val-unit"></td></tr>
+<tr><td class="item-name">RBC</td><td class="val-normal">0–1</td><td class="ref-range">0–3/HPF</td><td class="val-unit"></td></tr>
+</tbody></table>
+<p style="margin-top:12px;font-size:12px;color:var(--warn)">结论：尿蛋白+、尿糖++，需关注肾功能及血糖控制。</p>`
+  },
+  'hba1c_20260528.pdf': {
+    name: '糖化血红蛋白',
+    html: `<h1>糖化血红蛋白检测报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-28</p>
+<table class="med-table"><thead><tr><th>项目</th><th>结果</th><th>参考范围</th><th>说明</th></tr></thead><tbody>
+<tr><td class="item-name">HbA1c</td><td class="val-high">7.1% <span class="val-arrow up">↑</span></td><td class="ref-range">4.0–6.0%</td><td class="val-unit">控制目标 &lt;7.0%</td></tr>
+</tbody></table>
+<h2>解读</h2>
+<p>HbA1c反映近2-3月平均血糖水平。7.1%提示血糖控制未达标，需调整降糖方案。建议将二甲双胍加量或联合用药。</p>
+<h2>历史趋势</h2>
+<table class="med-table"><thead><tr><th>日期</th><th>HbA1c</th><th>目标</th></tr></thead><tbody>
+<tr><td>2026-05-28</td><td class="val-high">7.1%</td><td>&lt;7.0%</td></tr>
+<tr><td>2026-02-15</td><td>6.8%</td><td>&lt;7.0%</td></tr>
+<tr><td>2025-11-10</td><td>7.4%</td><td>&lt;7.0%</td></tr>
+</tbody></table>`
+  },
+  'chest_ct_20260515.pdf': {
+    name: '胸部CT',
+    html: `<h1>胸部CT报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-15 · 设备：64排CT</p>
+<h2>检查所见</h2>
+<p>双肺纹理清晰，未见明显实变影及结节影。气管及主支气管通畅。纵隔居中，未见明显肿大淋巴结。心影不大，心包不宽。双侧胸腔未见积液。</p>
+<h2>主动脉及冠状动脉</h2>
+<p>主动脉未见明显增宽。冠状动脉走行区可见散在钙化灶，以左前降支为著。</p>
+<h2>诊断意见</h2>
+<ol>
+<li>双肺CT未见明显异常</li>
+<li>冠状动脉散在钙化，建议结合临床进一步评估</li>
+</ol>
+<p style="margin-top:12px;font-size:12px;color:var(--warn)">注意：冠脉钙化提示动脉粥样硬化，与患者高血压+糖尿病史一致，建议进一步完善心脏评估。</p>`
+  },
+  'ecg_20260520.pdf': {
+    name: '心电图',
+    html: `<h1>心电图报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-20</p>
+<h2>心电图参数</h2>
+<table class="med-table"><thead><tr><th>参数</th><th>结果</th><th>参考</th></tr></thead><tbody>
+<tr><td class="item-name">心率</td><td class="val-normal">78 bpm</td><td>60–100</td></tr>
+<tr><td class="item-name">PR间期</td><td class="val-normal">0.16s</td><td>0.12–0.20s</td></tr>
+<tr><td class="item-name">QRS宽度</td><td class="val-normal">0.08s</td><td>&lt;0.12s</td></tr>
+<tr><td class="item-name">QTc</td><td class="val-normal">0.42s</td><td>&lt;0.45s</td></tr>
+<tr><td class="item-name">电轴</td><td class="val-normal">+30°</td><td>-30°~+90°</td></tr>
+</tbody></table>
+<h2>诊断</h2>
+<p>1. 窦性心律</p>
+<p>2. 左室高电压（提示左室肥厚可能）</p>
+<p style="font-size:12px;color:var(--warn)">左室高电压与长期高血压一致，建议心脏超声进一步评估。</p>`
+  },
+  'abdomen_us_20260522.pdf': {
+    name: '腹部超声',
+    html: `<h1>腹部超声报告</h1>
+<p style="font-size:12px;color:var(--t4)">检查日期：2026-05-22</p>
+<h2>肝脏</h2>
+<p>肝脏形态正常，实质回声增强，前方细密，后方衰减，肝内管道结构显示欠清。门静脉内径正常。</p>
+<h2>胆囊</h2>
+<p>胆囊大小正常，壁光滑，腔内未见异常回声。胆总管不宽。</p>
+<h2>胰腺</h2>
+<p>胰腺显示不清（肠气干扰），所见部分未见明显异常。</p>
+<h2>脾脏</h2>
+<p>脾脏大小正常，实质回声均匀。</p>
+<h2>双肾</h2>
+<p>左肾 10.2×4.8cm，右肾 10.0×4.6cm。双肾皮质回声略增强，皮髓质分界尚清。双肾未见明显结石及积水。</p>
+<h2>诊断意见</h2>
+<ol>
+<li>脂肪肝（中度）</li>
+<li>双肾皮质回声增强，建议结合肾功能评估</li>
+</ol>`
+  },
+  'outpatient_20260520.md': {
+    name: '门诊记录',
+    html: `<h1>门诊记录</h1>
+<p style="font-size:12px;color:var(--t4)">日期：2026-05-20 · 科室：心内科 · 医师：王医生</p>
+<h2>主诉</h2>
+<p>血压控制不佳3月</p>
+<h2>现病史</h2>
+<p>患者3年前诊断为高血压，长期口服氨氯地平5mg qd，血压波动于140–160/85–100mmHg。近3月自测血压多次>150/95mmHg，偶伴头晕，无胸痛、心悸。2年前诊断为2型糖尿病，口服二甲双胍500mg bid，未规律监测血糖。1周前体检发现尿酸偏高、血脂异常。</p>
+<h2>既往史</h2>
+<p>高血压3年，2型糖尿病2年，高尿酸血症（未规律治疗）。否认冠心病、脑血管病史。</p>
+<h2>过敏史</h2>
+<p>青霉素（皮疹）、海鲜（荨麻疹）</p>
+<h2>体格检查</h2>
+<p>BP 152/96mmHg, HR 78bpm, BMI 26.8。心肺查体未见明显异常。双下肢无水肿。</p>
+<h2>处理</h2>
+<p>完善检验检查（血常规、肝肾功能、血脂血糖、HbA1c、尿常规、心电图），择期复诊调整方案。</p>`
+  },
+  'medical_history.md': {
+    name: '既往病史',
+    html: `<h1>既往病史</h1>
+<h2>慢性疾病</h2>
+<table class="med-table"><thead><tr><th>疾病</th><th>诊断时间</th><th>当前状态</th></tr></thead><tbody>
+<tr><td class="item-name"><span class="entity" title="疾病">高血压病</span></td><td>2023-05</td><td>控制不佳</td></tr>
+<tr><td class="item-name"><span class="entity" title="疾病">2型糖尿病</span></td><td>2024-03</td><td>控制不佳</td></tr>
+<tr><td class="item-name"><span class="entity" title="疾病">高尿酸血症</span></td><td>2025-11</td><td>未治疗</td></tr>
+<tr><td class="item-name"><span class="entity" title="疾病">高脂血症</span></td><td>2026-05</td><td>新发现</td></tr>
+</tbody></table>
+<h2>手术史</h2>
+<p>无</p>
+<h2>家族史</h2>
+<ul>
+<li>父亲：高血压、冠心病</li>
+<li>母亲：2型糖尿病</li>
+<li>兄妹：体健</li>
+</ul>
+<h2>个人史</h2>
+<ul>
+<li>吸烟史：20年×10支/日，已戒2年</li>
+<li>饮酒史：偶饮</li>
+<li>运动：少</li>
+</ul>`
+  },
+  'medication_list.md': {
+    name: '用药清单',
+    html: `<h1>当前用药清单</h1>
+<p style="font-size:12px;color:var(--t4)">更新日期：2026-05-30</p>
+<table class="med-table"><thead><tr><th>药品</th><th>剂量</th><th>频次</th><th>分类</th></tr></thead><tbody>
+<tr><td class="item-name"><span class="entity" title="药物">氨氯地平</span></td><td>5mg</td><td>qd</td><td class="val-unit">CCB</td></tr>
+<tr><td class="item-name"><span class="entity" title="药物">二甲双胍</span></td><td>500mg</td><td>bid</td><td class="val-unit">双胍类</td></tr>
+</tbody></table>
+<p style="margin-top:12px;font-size:12px;color:var(--t3)">患者依从性一般，偶有漏服。氨氯地平单药血压控制不达标。</p>`
+  },
+  'allergy_record.md': {
+    name: '过敏记录',
+    html: `<h1>过敏记录</h1>
+<table class="med-table"><thead><tr><th>类型</th><th>过敏原</th><th>反应</th><th>严重程度</th><th>记录时间</th></tr></thead><tbody>
+<tr><td class="item-name">药物</td><td class="val-high">青霉素</td><td>皮疹</td><td class="val-unit">中度</td><td class="val-unit">2023-05</td></tr>
+<tr><td class="item-name">食物</td><td class="val-high">海鲜</td><td>荨麻疹</td><td class="val-unit">轻度</td><td class="val-unit">2020-08</td></tr>
+</tbody></table>
+<div class="warn-card err" style="margin-top:12px">
+  <div class="warn-icon"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v2M8 10.5v.5"/></svg></div>
+  <div class="warn-content">
+    <div class="warn-title">用药禁忌</div>
+    <div class="warn-text">禁用所有青霉素类药物（含阿莫西林、氨苄西林等）。如需抗感染治疗，选择非β-内酰胺类抗生素。</div>
+  </div>
+</div>`
+  },
+  'analyze_report_20260530.md': {
+    name: '分析报告',
+    html: `<h1>患者分析报告</h1>
+<h2>基本信息</h2>
+<ul><li>姓名：张三</li><li>年龄：58岁</li><li>性别：男</li><li>BMI：<span style="color:var(--warn)">26.8</span></li></ul>
+<h2>主诉</h2><p>血压控制不佳3月</p>
+<h2>既往史</h2>
+<ul>
+<li><span class="entity" title="疾病">高血压</span> 3年 · <span class="entity" title="药物">氨氯地平</span> 5mg qd</li>
+<li><span class="entity" title="疾病">2型糖尿病</span> 2年 · <span class="entity" title="药物">二甲双胍</span> 500mg bid</li>
+<li><span class="entity" title="疾病">高尿酸血症</span></li>
+</ul>
+<h2>关键异常</h2>
+<ul>
+<li>血压 152/96mmHg — 未达标</li>
+<li>HbA1c 7.1% — 未达标</li>
+<li>eGFR 78 — 偏低</li>
+<li>LDL-C 3.6 — 偏高</li>
+<li>尿蛋白+ — 需关注</li>
+</ul>
+<h2>诊断</h2>
+<ol>
+<li>高血压病2级（极高危）I11.9</li>
+<li>2型糖尿病 E11.9</li>
+<li>高尿酸血症 E79.0</li>
+<li>CKD 2期 N18.2</li>
+<li>高脂血症 E78.5</li>
+</ol>`
+  },
+  'treatment_plan.md': {
+    name: '用药方案',
+    html: `<h1>治疗方案</h1>
+<h2>降压</h2>
+<ul>
+<li><span class="entity" title="药物">氨氯地平</span> 5mg qd（继续）</li>
+<li><span class="entity" title="药物">缬沙坦</span> 80mg qd（新增）</li>
+</ul>
+<h2>降糖</h2>
+<ul>
+<li><span class="entity" title="药物">二甲双胍</span> 750mg bid（500→750加量）</li>
+</ul>
+<h2>降脂</h2>
+<ul>
+<li><span class="entity" title="药物">阿托伐他汀</span> 20mg qn（新增）</li>
+</ul>
+<h2>降尿酸</h2>
+<ul>
+<li><span class="entity" title="药物">非布司他</span> 20mg qd（新增）</li>
+</ul>
+<h2>抗血小板</h2>
+<ul>
+<li><span class="entity" title="药物">阿司匹林</span> 100mg qd（新增）</li>
+</ul>
+<h2>注意事项</h2>
+<ul>
+<li>缬沙坦：监测肾功能和血钾</li>
+<li>非布司他：监测肝功能</li>
+<li>阿司匹林：评估出血风险</li>
+</ul>`
+  },
+  'medication_plan.md': {
+    name: '处方调整',
+    html: `<h1>处方调整记录</h1>
+<p style="font-size:12px;color:var(--t4)">调整日期：2026-05-30 · 医师：MeDEX AI</p>
+<h2>调整明细</h2>
+<table class="med-table"><thead><tr><th>药品</th><th>调整前</th><th></th><th>调整后</th><th>原因</th></tr></thead><tbody>
+<tr><td class="item-name">氨氯地平</td><td>5mg qd</td><td class="val-unit">→</td><td>5mg qd</td><td class="val-unit">继续</td></tr>
+<tr><td class="item-name">缬沙坦</td><td>—</td><td class="val-unit">→</td><td class="val-high">80mg qd</td><td class="val-unit">联合降压</td></tr>
+<tr><td class="item-name">二甲双胍</td><td>500mg bid</td><td class="val-unit">→</td><td class="val-high">750mg bid</td><td class="val-unit">加强控糖</td></tr>
+<tr><td class="item-name">阿托伐他汀</td><td>—</td><td class="val-unit">→</td><td class="val-high">20mg qn</td><td class="val-unit">降脂</td></tr>
+<tr><td class="item-name">非布司他</td><td>—</td><td class="val-unit">→</td><td class="val-high">20mg qd</td><td class="val-unit">降尿酸</td></tr>
+<tr><td class="item-name">阿司匹林</td><td>—</td><td class="val-unit">→</td><td class="val-high">100mg qd</td><td class="val-unit">抗血小板</td></tr>
+</tbody></table>`
+  },
+  'guideline_summary.md': {
+    name: '指南摘要',
+    html: `<h1>指南摘要</h1>
+<p style="font-size:12px;color:var(--t4)">来源：中国高血压防治指南(2024年修订版) · 中国2型糖尿病防治指南(2024)</p>
+<h2>高血压合并糖尿病降压目标</h2>
+<p>血压目标 &lt;130/80 mmHg。首选 ACEI/ARB 类，可联合 CCB。</p>
+<h2>高血压合并CKD</h2>
+<p>eGFR 30–60：首选 ARB，需监测肌酐和血钾。eGFR &lt;30 慎用/禁用。</p>
+<h2>糖尿病血糖控制</h2>
+<p>HbA1c 目标 &lt;7.0%。一线用药：二甲双胍。可联合 SGLT2i（心肾保护）。</p>
+<h2>极高危降脂目标</h2>
+<p>LDL-C 目标 &lt;1.8 mmol/L，非HDL-C &lt;2.6 mmol/L。首选他汀类。</p>
+<h2>高尿酸血症</h2>
+<p>合并心血管危险因素：UA &gt;420μmol/L 即需药物治疗。首选非布司他（轻中度肾功能不全无需调量）。</p>`
+  },
+  'followup_schedule.md': {
+    name: '随访计划',
+    html: `<h1>随访计划</h1>
+<h2>2周后 · 常规</h2>
+<p>复查：血压、空腹血糖、肾功能(Cr/BUN/eGFR/K⁺)、肝功能(ALT/AST)</p>
+<p>评估：缬沙坦耐受性、血压达标情况</p>
+<h2>4周后 · 常规</h2>
+<p>复查：血压、HbA1c、肾功能、肝功能</p>
+<p>检查：心电图</p>
+<p>评估：如血压未达标，缬沙坦加量至160mg</p>
+<h2>3月后 · 常规</h2>
+<p>复查：HbA1c、血脂全套、肾功能、尿酸、肝功能</p>
+<p>检查：心脏超声、颈动脉超声</p>
+<p>评估：靶器官损害、综合达标情况</p>
+<h2>紧急就诊</h2>
+<p>头晕加重、血压>180/110、胸痛、心悸、少尿</p>`
+  },
+  'full_report_20260530.md': {
+    name: '完整报告',
+    html: `<h1>患者综合分析报告</h1>
+<p style="font-size:12px;color:var(--t4)">生成时间：2026-05-30 · MeDEX AI</p>
+<h2>基本信息</h2>
+<table class="med-table"><tbody>
+<tr><td class="item-name">姓名</td><td>张三</td><td class="item-name">性别</td><td>男</td></tr>
+<tr><td class="item-name">年龄</td><td>58岁</td><td class="item-name">BMI</td><td class="val-high">26.8</td></tr>
+<tr><td class="item-name">血型</td><td>A型 Rh+</td><td class="item-name">过敏史</td><td class="val-high">青霉素、海鲜</td></tr>
+</tbody></table>
+<h2>诊断 (ICD-10)</h2>
+<ul>
+<li>I11.9 高血压性心脏病</li>
+<li>E11.9 2型糖尿病</li>
+<li>E79.0 高尿酸血症</li>
+<li>N18.2 CKD 2期</li>
+<li>E78.5 高脂血症</li>
+</ul>
+<h2>风险评估</h2>
+<p>10年ASCVD风险：78%（高危）</p>
+<p>CKD进展风险：47%（中危）</p>
+<h2>治疗方案摘要</h2>
+<ul>
+<li>氨氯地平 5mg qd + 缬沙坦 80mg qd</li>
+<li>二甲双胍 750mg bid</li>
+<li>阿托伐他汀 20mg qn</li>
+<li>非布司他 20mg qd</li>
+<li>阿司匹林 100mg qd</li>
+</ul>`
+  },
+  'risk_assessment.md': {
+    name: '风险评估',
+    html: `<h1>风险评估报告</h1>
+<h2>ASCVD 10年风险</h2>
+<p style="font-size:24px;font-weight:600;color:var(--err);font-family:var(--mono)">78% <span style="font-size:12px;color:var(--err)">高危</span></p>
+<p>评估模型：China-PAR模型</p>
+<p>危险因素：高血压 + 糖尿病 + 吸烟史 + 高血脂 + 男性>55岁</p>
+<h2>CKD进展风险</h2>
+<p style="font-size:24px;font-weight:600;color:var(--warn);font-family:var(--mono)">47% <span style="font-size:12px;color:var(--warn)">中危</span></p>
+<p>当前 eGFR 78 mL/min + 尿蛋白+</p>
+<p>如不干预，5年内eGFR可能降至60以下</p>
+<h2>出血风险 (HAS-BLED)</h2>
+<p style="font-size:24px;font-weight:600;color:var(--t2);font-family:var(--mono)">2分 <span style="font-size:12px;color:var(--t2)">低中危</span></p>
+<p>高血压(+1) + 年龄>65(-0) → 阿司匹林获益大于风险</p>
+<h2>建议</h2>
+<ol>
+<li>积极控制血压至 &lt;130/80</li>
+<li>LDL-C降至 &lt;1.8 mmol/L</li>
+<li>保护肾功能，避免肾毒性药物</li>
+<li>2周复查肾功能和血钾</li>
+</ol>`
+  }
+};
+
+// ===== Modal =====
+const modal = document.getElementById('modal');
+document.getElementById('btnNew').addEventListener('click', () => modal.classList.add('visible'));
+document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('visible'));
+modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('visible'); });
+
+// ===== Sidebar =====
+document.querySelectorAll('.sidebar-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// ===== File Tree: Folder Toggle =====
+document.querySelectorAll('.tree-folder-head').forEach(head => {
+  head.addEventListener('click', (e) => {
+    e.stopPropagation();
+    head.closest('.tree-folder').classList.toggle('open');
+  });
+});
+
+// ===== File Tree: Item Click → Preview =====
+const previewContent = document.getElementById('previewContent');
+const previewFileName = document.getElementById('previewFileName');
+
+function selectFile(fileKey) {
+  document.querySelectorAll('.tree-item').forEach(i => i.classList.remove('active'));
+  const item = document.querySelector(`.tree-item[data-file="${fileKey}"]`);
+  if (item) item.classList.add('active');
+  const data = fileContents[fileKey];
+  if (data) {
+    previewFileName.textContent = fileKey;
+    previewContent.innerHTML = data.html;
+  } else {
+    previewFileName.textContent = fileKey;
+    previewContent.innerHTML = `<p style="color:var(--t3)">预览暂不可用</p>`;
+  }
+}
+
+document.querySelectorAll('.tree-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectFile(item.dataset.file);
+  });
+  item.addEventListener('dblclick', () => openFileModal(item.dataset.file));
+});
+
+// Initialize default file
+selectFile('analyze_report_20260530.md');
+
+// ===== Ask options =====
+document.querySelectorAll('.ask-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    opt.closest('.ask-opts').querySelectorAll('.ask-opt').forEach(o => o.classList.remove('sel'));
+    opt.classList.add('sel');
+  });
+});
+
+// ===== Tool cards =====
+document.querySelectorAll('.tool-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.tool-card').classList.toggle('open'));
+});
+
+// ===== Thinking =====
+document.querySelectorAll('.thinking-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.thinking').classList.toggle('open'));
+});
+
+// ===== Task group collapse =====
+document.querySelectorAll('.task-group-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.task-group').classList.toggle('collapsed'));
+});
+
+// ===== Textarea =====
+const ta = document.querySelector('.input-text');
+ta.addEventListener('input', () => {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+});
+
+// ===== File Upload =====
+const btnAttach = document.getElementById('btnAttach');
+const fileInput = document.getElementById('fileInput');
+const attachments = document.querySelector('.attachments');
+
+btnAttach.addEventListener('click', (e) => {
+  e.preventDefault();
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', () => {
+  for (const file of fileInput.files) {
+    const att = document.createElement('div');
+    att.className = 'att';
+    const size = file.size > 1048576 ? (file.size / 1048576).toFixed(1) + 'MB' : (file.size / 1024).toFixed(0) + 'KB';
+    att.innerHTML = `<svg viewBox="0 0 16 16"><path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/></svg> ${file.name} (${size}) <span class="x">✕</span>`;
+    att.querySelector('.x').addEventListener('click', () => att.remove());
+    attachments.appendChild(att);
+  }
+  fileInput.value = '';
+});
+
+// ===== Move dropdowns to body to avoid overflow clipping =====
+document.body.appendChild(document.getElementById('modelDropdown'));
+document.body.appendChild(document.getElementById('skillDropdown'));
+
+// ===== Model Selector (single-select) =====
+const modelBtn = document.getElementById('modelBtn');
+const modelDropdown = document.getElementById('modelDropdown');
+const currentModel = document.getElementById('currentModel');
+
+function positionDropdown(dropdown, anchor) {
+  const r = anchor.getBoundingClientRect();
+  dropdown.style.left = r.left + 'px';
+  dropdown.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+}
+
+modelBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  skillDropdown.classList.remove('open');
+  if (modelDropdown.classList.contains('open')) {
+    modelDropdown.classList.remove('open');
+  } else {
+    positionDropdown(modelDropdown, modelBtn);
+    modelDropdown.classList.add('open');
+  }
+});
+
+document.querySelectorAll('.model-option').forEach(opt => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.model-option').forEach(o => { o.classList.remove('selected'); o.querySelector('.model-option-check')?.remove(); });
+    opt.classList.add('selected');
+    const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    check.setAttribute('class', 'model-option-check');
+    check.setAttribute('viewBox', '0 0 16 16');
+    check.innerHTML = '<path d="M3.5 8.5l3 3 6-6"/>';
+    opt.appendChild(check);
+    currentModel.textContent = opt.querySelector('.model-option-name').textContent;
+    modelDropdown.classList.remove('open');
+  });
+});
+
+// ===== Skill Selector (multi-select) =====
+const skillBtn = document.getElementById('skillBtn');
+const skillDropdown = document.getElementById('skillDropdown');
+const skillTags = document.getElementById('skillTags');
+const selectedSkills = new Set();
+
+function updateSkillDisplay() {
+  skillTags.innerHTML = '';
+  selectedSkills.forEach(s => {
+    const tag = document.createElement('span');
+    tag.className = 'skill-tag';
+    tag.textContent = s;
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedSkills.delete(s);
+      updateSkillDisplay();
+      updateSkillOptions();
+    });
+    skillTags.appendChild(tag);
+  });
+}
+
+function updateSkillOptions() {
+  document.querySelectorAll('.skill-option').forEach(o => {
+    o.classList.toggle('selected', selectedSkills.has(o.dataset.skill));
+  });
+}
+
+skillBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  modelDropdown.classList.remove('open');
+  if (skillDropdown.classList.contains('open')) {
+    skillDropdown.classList.remove('open');
+  } else {
+    positionDropdown(skillDropdown, skillBtn);
+    skillDropdown.classList.add('open');
+  }
+});
+
+document.querySelectorAll('.skill-option').forEach(opt => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const skill = opt.dataset.skill;
+    if (selectedSkills.has(skill)) {
+      selectedSkills.delete(skill);
+    } else {
+      selectedSkills.add(skill);
+      // Auto-complete: replace /word at cursor with full skill name
+      const val = ta.value;
+      const cursorPos = ta.selectionStart;
+      const beforeCursor = val.slice(0, cursorPos);
+      const m = beforeCursor.match(/(\/\S*)$/);
+      if (m) {
+        const replaceStart = cursorPos - m[1].length;
+        ta.value = val.slice(0, replaceStart) + skill + ' ' + val.slice(cursorPos);
+        ta.selectionStart = ta.selectionEnd = replaceStart + skill.length + 1;
+      } else if (!val.split(/\s/).includes(skill)) {
+        ta.value = val ? val + ' ' + skill + ' ' : skill + ' ';
+      }
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+      ta.focus();
+    }
+    updateSkillDisplay();
+    updateSkillOptions();
+  });
+});
+
+// ===== Input: / triggers skill menu with filtering =====
+ta.addEventListener('input', () => {
+  const val = ta.value;
+  const cursorPos = ta.selectionStart;
+  // Only trigger when / is at start or after a space, and cursor is right after the /-word
+  const beforeCursor = val.slice(0, cursorPos);
+  const match = beforeCursor.match(/(?:^|\s)\/(\S*)$/);
+  if (match) {
+    const query = match[1].toLowerCase();
+    positionDropdown(skillDropdown, ta);
+    skillDropdown.classList.add('open');
+    modelDropdown.classList.remove('open');
+    document.querySelectorAll('.skill-option').forEach(o => {
+      const name = o.dataset.skill.toLowerCase();
+      o.style.display = name.includes(query) || query === '' ? '' : 'none';
+    });
+  } else {
+    skillDropdown.classList.remove('open');
+  }
+});
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => {
+  modelDropdown.classList.remove('open');
+  skillDropdown.classList.remove('open');
+});
+
+// ===== Send Message =====
+const messagesContainer = document.querySelector('.messages');
+const sendBtn = document.querySelector('.input-send');
+
+function sendMessage() {
+  const text = ta.value.trim();
+  if (!text) return;
+
+  // Build skill tags HTML
+  let skillHtml = '';
+  if (selectedSkills.size > 0) {
+    const tags = [...selectedSkills].map(s => `<span style="display:inline-block;padding:1px 6px;background:var(--accent-dim);border-radius:var(--r-sm);font-size:11px;color:var(--accent);font-family:var(--mono);margin-right:4px">${s}</span>`).join('');
+    skillHtml = `<p style="margin-top:8px">${tags}</p>`;
+  }
+
+  // Build file attachments HTML
+  let attachHtml = '';
+  const attEls = document.querySelectorAll('.att');
+  if (attEls.length > 0) {
+    const names = [...attEls].map(a => a.textContent.replace('✕', '').trim()).join(' · ');
+    attachHtml = `<p style="color:var(--t3);font-size:12px;margin-top:8px;font-family:var(--mono)">${names}</p>`;
+  }
+
+  const msg = document.createElement('div');
+  msg.className = 'msg user-msg';
+  msg.innerHTML = `
+    <div class="msg-role">
+      <svg viewBox="0 0 16 16"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+      You
+    </div>
+    <div class="msg-body">
+      <p>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>
+      ${skillHtml}${attachHtml}
+    </div>
+  `;
+  messagesContainer.appendChild(msg);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  // Clear input
+  ta.value = '';
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  document.querySelectorAll('.att').forEach(a => a.remove());
+  selectedSkills.clear();
+  updateSkillDisplay();
+  updateSkillOptions();
+  skillDropdown.classList.remove('open');
+  modelDropdown.classList.remove('open');
+}
+
+sendBtn.addEventListener('click', sendMessage);
+ta.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// ===== Right Panel Collapse/Expand =====
+const filePanel = document.getElementById('filePanel');
+const resizeHandle = document.getElementById('resizeHandle');
+const panelFab = document.getElementById('panelFab');
+const btnCollapse = document.getElementById('btnCollapsePanel');
+
+btnCollapse.addEventListener('click', () => {
+  filePanel.classList.add('collapsed');
+  resizeHandle.style.display = 'none';
+  panelFab.classList.add('visible');
+});
+
+panelFab.addEventListener('click', () => {
+  filePanel.classList.remove('collapsed');
+  filePanel.style.width = '';
+  resizeHandle.style.display = '';
+  panelFab.classList.remove('visible');
+});
+
+// ===== Panel Drag Resize =====
+let isResizing = false;
+let startX, startWidth;
+
+resizeHandle.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  startX = e.clientX;
+  startWidth = filePanel.offsetWidth;
+  resizeHandle.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  const diff = startX - e.clientX;
+  const newWidth = Math.max(240, Math.min(600, startWidth + diff));
+  filePanel.style.width = newWidth + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  resizeHandle.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+// ===== File Modal =====
+const fileOverlay = document.getElementById('fileOverlay');
+const fileModalName = document.getElementById('fileModalName');
+const fileModalBody = document.getElementById('fileModalBody');
+
+function openFileModal(fileKey) {
+  const data = fileContents[fileKey];
+  fileModalName.textContent = fileKey;
+  if (data) {
+    fileModalBody.innerHTML = data.html;
+  } else {
+    fileModalBody.innerHTML = `<p style="color:var(--t3)">预览暂不可用</p>`;
+  }
+  fileOverlay.classList.add('visible');
+}
+
+function closeFileModal() {
+  fileOverlay.classList.remove('visible');
+}
+
+document.getElementById('fileModalClose').addEventListener('click', closeFileModal);
+fileOverlay.addEventListener('click', (e) => { if (e.target === fileOverlay) closeFileModal(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeFileModal();
+    modal.classList.remove('visible');
+    modelDropdown.classList.remove('open');
+    skillDropdown.classList.remove('open');
+  }
+});
+
+// File link clicks -> select in tree & open preview
+document.querySelectorAll('.file-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const fileKey = link.dataset.file;
+    // Try to find matching tree item and select it
+    const treeItem = document.querySelector(`.tree-item[data-file="${fileKey}"]`);
+    if (treeItem) {
+      selectFile(fileKey);
+      // Open parent folders
+      let parent = treeItem.closest('.tree-folder');
+      while (parent) {
+        parent.classList.add('open');
+        parent = parent.parentElement.closest('.tree-folder');
+      }
+      // Show panel if collapsed
+      if (filePanel.classList.contains('collapsed')) {
+        panelFab.click();
+      }
+    }
+  });
+});
+
+// Expand button in preview -> open modal
+document.getElementById('btnExpandFile').addEventListener('click', () => {
+  const activeItem = document.querySelector('.tree-item.active');
+  const fileKey = activeItem ? activeItem.dataset.file : 'unknown.md';
+  openFileModal(fileKey);
+});
+
+// ===== Entity Tooltips =====
+const tooltip = document.getElementById('tooltip');
+function bindEntityTooltips() {
+  document.querySelectorAll('.entity').forEach(entity => {
+    entity.addEventListener('mouseenter', (e) => {
+      const type = entity.getAttribute('title');
+      tooltip.textContent = type;
+      tooltip.classList.add('visible');
+      const rect = entity.getBoundingClientRect();
+      tooltip.style.left = rect.left + 'px';
+      tooltip.style.top = (rect.top - 28) + 'px';
+    });
+    entity.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+}
+bindEntityTooltips();
+
+// Re-bind tooltips when preview content changes
+const origSelectFile = selectFile;
+const previewObserver = new MutationObserver(() => bindEntityTooltips());
+previewObserver.observe(previewContent, { childList: true, subtree: true });
+
+// ===== Keyboard shortcut: Ctrl+B toggle panel =====
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+    e.preventDefault();
+    if (filePanel.classList.contains('collapsed')) {
+      panelFab.click();
+    } else {
+      btnCollapse.click();
+    }
+  }
+});
+
+// ===== Theme Toggle =====
+const themeToggle = document.getElementById('themeToggle');
+const iconMoon = themeToggle.querySelector('.icon-moon');
+const iconSun = themeToggle.querySelector('.icon-sun');
+
+themeToggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  iconMoon.style.display = isLight ? 'none' : '';
+  iconSun.style.display = isLight ? '' : 'none';
+});
+
+// ===== Demo Animation =====
+(function() {
+  const messages = document.querySelectorAll('.msg[data-step]');
+  const chatEl = document.querySelector('.chat');
+  const delays = {
+    1: 800,    // User uploads
+    2: 3000,   // MeDEX reads files + ask block
+    3: 1200,   // User selected cardiac echo
+    4: 3000,   // MeDEX processes + guideline
+    5: 1200,   // User asks for medication
+    6: 3000,   // MeDEX proposes meds + ask block
+    7: 1200,   // User confirmed 80mg
+    8: 3500,   // MeDEX generates reports + ask block
+    9: 1000,   // User confirms follow-up
+    10: 2000   // MeDEX final confirmation
+  };
+
+  // Steps where ask-block should auto-resolve after reveal
+  const askAutoResolve = {
+    2: { askId: 'ask1', answerIdx: 0 },    // Select "心脏超声"
+    6: { askId: 'ask2', answerIdx: 0 },    // Select "80mg qd"
+    8: { askId: 'ask3', answerIdx: null }  // Input type, just hide
+  };
+
+  let demoRunning = false;
+
+  function revealStep(step) {
+    const msg = document.querySelector(`.msg[data-step="${step}"]`);
+    if (!msg) return;
+    msg.classList.add('revealed');
+    setTimeout(() => {
+      msg.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
+    bindEntityTooltips();
+  }
+
+  function resolveAsk(askId) {
+    const ask = document.getElementById(askId);
+    if (!ask) return;
+    ask.style.transition = 'opacity 0.3s ease, max-height 0.3s ease';
+    ask.style.opacity = '0';
+    ask.style.maxHeight = '0';
+    ask.style.overflow = 'hidden';
+    ask.style.margin = '0';
+    ask.style.padding = '0';
+    setTimeout(() => ask.remove(), 400);
+  }
+
+  // Make ask-blocks interactive (click to select, confirm to hide)
+  document.querySelectorAll('.ask-block').forEach(ask => {
+    ask.querySelectorAll('.ask-opt').forEach(opt => {
+      opt.addEventListener('click', () => {
+        ask.querySelectorAll('.ask-opt').forEach(o => o.classList.remove('sel'));
+        opt.classList.add('sel');
+      });
+    });
+    ask.querySelector('.ask-confirm').addEventListener('click', () => {
+      resolveAsk(ask.id);
+    });
+  });
+
+  async function runDemo() {
+    if (demoRunning) return;
+    demoRunning = true;
+    document.getElementById('demoBtn').classList.remove('visible');
+    messages.forEach(m => m.classList.remove('revealed'));
+
+    for (let step = 1; step <= 10; step++) {
+      revealStep(step);
+      await new Promise(r => setTimeout(r, delays[step] || 2000));
+
+      // Auto-resolve ask blocks after the delay
+      if (askAutoResolve[step]) {
+        const { askId } = askAutoResolve[step];
+        await new Promise(r => setTimeout(r, 600));
+        resolveAsk(askId);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+    demoRunning = false;
+    setTimeout(() => {
+      document.getElementById('demoBtn').textContent = '重新演示';
+      document.getElementById('demoBtn').classList.add('visible');
+    }, 1000);
+  }
+
+  const demoBtn = document.createElement('button');
+  demoBtn.id = 'demoBtn';
+  demoBtn.className = 'demo-btn visible';
+  demoBtn.textContent = '开始演示';
+  demoBtn.addEventListener('click', runDemo);
+  document.body.appendChild(demoBtn);
+
+  setTimeout(runDemo, 1500);
+})();
+</script>
+
+</body>
+</html>
